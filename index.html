@@ -13,6 +13,7 @@
     --text: #eaeaea;
     --muted: #8892a4;
     --green: #4ecca3;
+    --orange: #f59e0b;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -29,8 +30,37 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.9rem; }
-  .week-label { color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; }
+  .subtitle { color: var(--muted); margin-bottom: 0.5rem; font-size: 0.9rem; }
+  .week-label { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem; }
+  .dj-badge {
+    display: inline-block;
+    background: var(--orange);
+    color: var(--bg);
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--card);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .status-bar.offline .status-dot { background: var(--highlight); animation: none; }
   .team-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -42,9 +72,23 @@
     border-radius: 12px;
     padding: 1.5rem;
     border: 1px solid var(--accent);
-    transition: border-color 0.2s;
+    transition: border-color 0.3s;
+    position: relative;
   }
   .card.has-vibe { border-color: var(--green); }
+  .card.is-dj { border-color: var(--orange); }
+  .card.is-dj::after {
+    content: 'DJ';
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    background: var(--orange);
+    color: var(--bg);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -80,7 +124,8 @@
     margin-bottom: 0.75rem;
   }
   .song-input::placeholder { color: var(--muted); }
-  .clear-btn {
+  .card-actions { display: flex; gap: 0.5rem; }
+  .clear-btn, .save-btn {
     background: none;
     border: 1px solid var(--muted);
     color: var(--muted);
@@ -91,6 +136,8 @@
     transition: all 0.2s;
   }
   .clear-btn:hover { border-color: var(--highlight); color: var(--highlight); }
+  .save-btn { border-color: var(--green); color: var(--green); }
+  .save-btn:hover { background: var(--green); color: var(--bg); }
   .actions {
     display: flex;
     gap: 1rem;
@@ -109,7 +156,7 @@
     transition: opacity 0.2s;
   }
   .log-btn:hover { opacity: 0.85; }
-  .reset-btn {
+  .refresh-btn, .reset-btn {
     background: none;
     border: 1px solid var(--muted);
     color: var(--muted);
@@ -118,7 +165,7 @@
     font-size: 0.9rem;
     cursor: pointer;
   }
-  .reset-btn:hover { border-color: var(--highlight); color: var(--highlight); }
+  .refresh-btn:hover, .reset-btn:hover { border-color: var(--text); color: var(--text); }
   .toast {
     position: fixed;
     bottom: 2rem;
@@ -178,6 +225,20 @@
     transition: background 0.15s;
   }
   .emoji-option:hover { background: var(--accent); }
+  .setup-banner {
+    background: var(--highlight);
+    color: white;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+  }
+  .setup-banner code {
+    background: rgba(0,0,0,0.3);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.85rem;
+  }
 </style>
 </head>
 <body>
@@ -185,12 +246,23 @@
 <h1>Vibes</h1>
 <p class="subtitle">APAC PMM weekly pulse</p>
 <p class="week-label" id="weekLabel"></p>
+<div class="dj-badge" id="djBadge"></div>
+
+<div class="status-bar" id="statusBar">
+  <div class="status-dot"></div>
+  <span id="statusText">Connecting...</span>
+</div>
+
+<div class="setup-banner" id="setupBanner" style="display:none;">
+  Apps Script URL not configured. Set <code>SCRIPT_URL</code> in index.html after deploying the script.
+</div>
 
 <div class="team-grid" id="teamGrid"></div>
 
 <div class="actions">
-  <button class="log-btn" onclick="logVibes()">Log vibes & copy to clipboard</button>
-  <button class="reset-btn" onclick="resetAll()">Reset all (new week)</button>
+  <button class="log-btn" onclick="copyMarkdown()">Copy log to clipboard</button>
+  <button class="refresh-btn" onclick="fetchVibes()">Refresh</button>
+  <button class="reset-btn" onclick="resetWeek()">New week</button>
 </div>
 
 <div class="history" id="historySection">
@@ -198,13 +270,19 @@
   <div id="historyList"></div>
 </div>
 
-<div class="toast" id="toast">Copied to clipboard — paste into vibes-log.md</div>
+<div class="toast" id="toast"></div>
 
 <div class="emoji-picker-overlay" id="emojiOverlay" onclick="closeEmojiPicker(event)">
   <div class="emoji-grid" id="emojiGrid"></div>
 </div>
 
 <script>
+// ============================================================
+// CONFIG — paste your Apps Script deployment URL here
+// ============================================================
+const SCRIPT_URL = '';
+// ============================================================
+
 const TEAM = [
   { id: 'ben', name: 'Ben', market: 'APAC Lead' },
   { id: 'karina', name: 'Karina', market: 'AUNZ' },
@@ -221,66 +299,209 @@ const EMOJIS = [
   '📈','📉','⏳','🛑','🏔️','🌱','🪨','💎',
 ];
 
-const STORAGE_KEY = 'vibes_current';
-const HISTORY_KEY = 'vibes_history';
 let currentPicker = null;
+let vibesData = [];
+let localState = {};
+
+function getWeekNumber() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  return Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
+}
+
+function getWeekKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-W${String(getWeekNumber()).padStart(2, '0')}`;
+}
+
+function getDateStr() {
+  return new Date().toISOString().split('T')[0];
+}
 
 function getWeekLabel() {
   const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const week = Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
-  return `Week ${week} — ${now.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+  return `Week ${getWeekNumber()} — ${now.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
 }
 
-function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  return saved ? JSON.parse(saved) : {};
+function getDJ() {
+  const weekNum = getWeekNumber();
+  return TEAM[weekNum % TEAM.length];
 }
 
-function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-function loadHistory() {
-  const saved = localStorage.getItem(HISTORY_KEY);
-  return saved ? JSON.parse(saved) : [];
+function setStatus(online, text) {
+  const bar = document.getElementById('statusBar');
+  const txt = document.getElementById('statusText');
+  bar.className = online ? 'status-bar' : 'status-bar offline';
+  txt.textContent = text;
 }
 
-function saveHistory(history) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+// ---- Data Layer ----
+
+async function fetchVibes() {
+  if (!SCRIPT_URL) {
+    document.getElementById('setupBanner').style.display = 'block';
+    setStatus(false, 'Not configured');
+    renderFromLocal();
+    return;
+  }
+
+  try {
+    const res = await fetch(SCRIPT_URL);
+    vibesData = await res.json();
+    setStatus(true, `Synced — ${vibesData.length} entries`);
+
+    // Update local state from remote for current week
+    const week = getWeekKey();
+    localState = {};
+    vibesData.filter(r => r.week === week).forEach(r => {
+      const member = TEAM.find(m => m.name === r.name);
+      if (member) localState[member.id] = { emoji: r.emoji, song: r.song };
+    });
+
+    render();
+  } catch (err) {
+    setStatus(false, 'Offline — using local');
+    renderFromLocal();
+  }
 }
+
+async function saveVibe(memberId) {
+  const member = TEAM.find(m => m.id === memberId);
+  const data = localState[memberId] || {};
+
+  if (!data.emoji) return;
+
+  if (!SCRIPT_URL) {
+    showToast('Saved locally (no backend configured)');
+    return;
+  }
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'save',
+        week: getWeekKey(),
+        date: getDateStr(),
+        name: member.name,
+        emoji: data.emoji,
+        song: data.song || '',
+      }),
+    });
+    showToast(`${member.name}'s vibe saved`);
+  } catch (err) {
+    showToast('Save failed — try again');
+  }
+}
+
+async function clearVibe(memberId) {
+  const member = TEAM.find(m => m.id === memberId);
+  delete localState[memberId];
+  render();
+
+  if (!SCRIPT_URL) return;
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'clear',
+        week: getWeekKey(),
+        name: member.name,
+      }),
+    });
+    showToast(`${member.name} cleared`);
+  } catch (err) {
+    showToast('Clear failed');
+  }
+}
+
+function renderFromLocal() {
+  const saved = localStorage.getItem('vibes_local');
+  if (saved) localState = JSON.parse(saved);
+  render();
+}
+
+// ---- Rendering ----
 
 function render() {
-  const state = loadState();
   const grid = document.getElementById('teamGrid');
+  const dj = getDJ();
   grid.innerHTML = '';
 
   TEAM.forEach(member => {
-    const data = state[member.id] || {};
+    const data = localState[member.id] || {};
     const hasVibe = !!data.emoji;
+    const isDJ = member.id === dj.id;
     const card = document.createElement('div');
-    card.className = `card ${hasVibe ? 'has-vibe' : ''}`;
+    card.className = `card ${hasVibe ? 'has-vibe' : ''} ${isDJ ? 'is-dj' : ''}`;
     card.innerHTML = `
       <div class="card-header">
         <div>
           <div class="card-name">${member.name}</div>
           <div class="card-market">${member.market}</div>
         </div>
-        <button class="clear-btn" onclick="clearMember('${member.id}')">Clear</button>
       </div>
       <div class="emoji-pick ${hasVibe ? '' : 'empty'}" onclick="openEmojiPicker('${member.id}')">
         ${hasVibe ? data.emoji : 'Pick emoji'}
       </div>
-      <input class="song-input" type="text" placeholder="Song / track name"
+      <input class="song-input" type="text" placeholder="${isDJ ? '🎵 Your DJ pick this week' : 'Song / track name'}"
         value="${data.song || ''}"
         onchange="updateSong('${member.id}', this.value)"
-        onkeyup="updateSong('${member.id}', this.value)">
+        onblur="saveVibe('${member.id}')">
+      <div class="card-actions">
+        <button class="save-btn" onclick="saveVibe('${member.id}')">Save</button>
+        <button class="clear-btn" onclick="clearVibe('${member.id}')">Clear</button>
+      </div>
     `;
     grid.appendChild(card);
   });
 
+  // Save local backup
+  localStorage.setItem('vibes_local', JSON.stringify(localState));
+
   renderHistory();
 }
+
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  const currentWeek = getWeekKey();
+
+  // Group history by week
+  const weeks = {};
+  vibesData.forEach(row => {
+    if (row.week === currentWeek) return;
+    if (!weeks[row.week]) weeks[row.week] = { date: row.date, vibes: [] };
+    weeks[row.week].vibes.push(row);
+  });
+
+  const sortedWeeks = Object.keys(weeks).sort().reverse().slice(0, 10);
+
+  if (sortedWeeks.length === 0) {
+    container.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem;">No past entries yet.</p>';
+    return;
+  }
+
+  container.innerHTML = sortedWeeks.map(w => `
+    <div class="history-entry">
+      <div class="history-date">${w} (${weeks[w].date})</div>
+      <div class="history-vibes">
+        ${weeks[w].vibes.map(v =>
+          `<span class="history-vibe"><span class="emoji">${v.emoji}</span> ${v.name}${v.song ? ' — ' + v.song : ''}</span>`
+        ).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ---- Interactions ----
 
 function openEmojiPicker(memberId) {
   currentPicker = memberId;
@@ -300,46 +521,39 @@ function closeEmojiPicker(e) {
 
 function pickEmoji(emoji) {
   if (!currentPicker) return;
-  const state = loadState();
-  if (!state[currentPicker]) state[currentPicker] = {};
-  state[currentPicker].emoji = emoji;
-  saveState(state);
+  if (!localState[currentPicker]) localState[currentPicker] = {};
+  localState[currentPicker].emoji = emoji;
   document.getElementById('emojiOverlay').classList.remove('open');
   currentPicker = null;
   render();
+  saveVibe(currentPicker || Object.keys(localState).pop());
 }
 
 function updateSong(memberId, value) {
-  const state = loadState();
-  if (!state[memberId]) state[memberId] = {};
-  state[memberId].song = value;
-  saveState(state);
+  if (!localState[memberId]) localState[memberId] = {};
+  localState[memberId].song = value;
+  localStorage.setItem('vibes_local', JSON.stringify(localState));
 }
 
-function clearMember(memberId) {
-  const state = loadState();
-  delete state[memberId];
-  saveState(state);
+function resetWeek() {
+  if (!confirm('Start fresh for a new week? (History stays in the sheet)')) return;
+  localState = {};
+  localStorage.removeItem('vibes_local');
   render();
 }
 
-function resetAll() {
-  if (!confirm('Start fresh for a new week? (History is preserved)')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  render();
-}
+function copyMarkdown() {
+  const week = getWeekKey();
+  const date = getDateStr();
+  const dj = getDJ();
 
-function logVibes() {
-  const state = loadState();
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-
-  let md = `## ${dateStr}\n\n`;
+  let md = `## ${date} (${week})\n\n`;
+  md += `**DJ:** ${dj.name}\n\n`;
   md += `| Name | Vibe | Song |\n`;
   md += `|---|---|---|\n`;
 
   TEAM.forEach(member => {
-    const data = state[member.id] || {};
+    const data = localState[member.id] || {};
     const emoji = data.emoji || '—';
     const song = data.song || '—';
     md += `| ${member.name} | ${emoji} | ${song} |\n`;
@@ -348,48 +562,17 @@ function logVibes() {
   md += `\n---\n\n`;
 
   navigator.clipboard.writeText(md).then(() => {
-    const history = loadHistory();
-    const entry = { date: dateStr, vibes: {} };
-    TEAM.forEach(member => {
-      const data = state[member.id] || {};
-      if (data.emoji) entry.vibes[member.id] = { emoji: data.emoji, song: data.song || '' };
-    });
-    history.unshift(entry);
-    saveHistory(history);
-
-    const toast = document.getElementById('toast');
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
-
-    renderHistory();
+    showToast('Copied — paste into vibes-log.md');
   });
 }
 
-function renderHistory() {
-  const history = loadHistory();
-  const container = document.getElementById('historyList');
-
-  if (history.length === 0) {
-    container.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem;">No entries yet.</p>';
-    return;
-  }
-
-  container.innerHTML = history.slice(0, 12).map(entry => `
-    <div class="history-entry">
-      <div class="history-date">${entry.date}</div>
-      <div class="history-vibes">
-        ${TEAM.map(m => {
-          const v = entry.vibes[m.id];
-          if (!v) return '';
-          return `<span class="history-vibe"><span class="emoji">${v.emoji}</span> ${m.name}${v.song ? ' — ' + v.song : ''}</span>`;
-        }).filter(Boolean).join('')}
-      </div>
-    </div>
-  `).join('');
-}
-
+// ---- Init ----
 document.getElementById('weekLabel').textContent = getWeekLabel();
-render();
+document.getElementById('djBadge').textContent = `🎧 DJ this week: ${getDJ().name}`;
+fetchVibes();
+
+// Auto-refresh every 30s
+setInterval(fetchVibes, 30000);
 </script>
 </body>
 </html>
