@@ -163,6 +163,12 @@ let snippetBotDefeated = false;
 let snippetBattleState = null;
 let pauseMenuIdx = 0; // 0=Continue, 1=New Game, 2=Exit
 
+// Confirm button dimensions for emoji picker
+const confirmBtnX = 560;
+const confirmBtnY = 310;
+const confirmBtnW = 100;
+const confirmBtnH = 30;
+
 // Intro sequence state
 let introTimer = 0;
 let introPhase = 'walk'; // walk, flash, text
@@ -1570,7 +1576,18 @@ function drawEmojiPicker() {
         ctx.fillText(EMOJIS[i], ex + 8, ey + 28);
     }
 
-    drawText('ARROWS:select SPACE:pick ESC:skip', 24, CANVAS_H - 24, PAL.darkGray, 1);
+    // Confirm button (clickable)
+    ctx.fillStyle = PAL.green;
+    ctx.fillRect(confirmBtnX, confirmBtnY, confirmBtnW, confirmBtnH);
+    ctx.fillStyle = PAL.white;
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('CONFIRM', confirmBtnX + confirmBtnW/2, confirmBtnY + confirmBtnH/2);
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'top';
+
+    drawText('ARROWS:select SPACE/click:pick ESC:skip', 24, CANVAS_H - 24, PAL.darkGray, 1);
 }
 
 function drawTextInput() {
@@ -1952,6 +1969,7 @@ function handleBattleAction() {
             battleState.phase = 'text';
             textInputActive = true;
             textInputValue = '';
+            hiddenInput.focus(); // trigger mobile keyboard
         }
     } else if (battleState.phase === 'emoji') {
         // Select current emoji
@@ -1962,6 +1980,7 @@ function handleBattleAction() {
         // End battle
         badges.add(battleState.npc.id);
         battleState.active = false;
+        saveProgress(); // save after each encounter
 
         if (badges.size === 5) {
             transitionTimer = 30;
@@ -2231,12 +2250,56 @@ function handleSnippetBattleAction() {
 }
 
 // ============================================================
-// SAVE DATA
+// PROGRESS SAVE/LOAD
+// ============================================================
+const SAVE_KEY = 'vibecheck-game-progress';
+
+function saveProgress() {
+    const data = {
+        playerName: playerName,
+        completedEncounters: Array.from(badges),
+        checkInData: checkInData,
+        playerPos: { x: player.x, y: player.y, dir: player.dir },
+        snippetBotDefeated: snippetBotDefeated,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+}
+
+function loadProgress() {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    try {
+        const data = JSON.parse(raw);
+        if (!data.playerName || !data.completedEncounters) return false;
+        playerName = data.playerName;
+        badges = new Set(data.completedEncounters);
+        checkInData = data.checkInData || checkInData;
+        if (data.playerPos) {
+            player.x = data.playerPos.x;
+            player.y = data.playerPos.y;
+            player.px = player.x * TILE;
+            player.py = player.y * TILE;
+            player.dir = data.playerPos.dir || 0;
+        }
+        snippetBotDefeated = data.snippetBotDefeated || false;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function clearProgress() {
+    localStorage.removeItem(SAVE_KEY);
+}
+
+// ============================================================
+// SAVE DATA & FINISH
 // ============================================================
 function finishGame() {
     state = 'complete';
     completeTimer = 0;
     particles = [];
+    clearProgress(); // clear save on game completion
 
     const entry = {
         name: playerName,
@@ -2255,19 +2318,189 @@ function finishGame() {
 }
 
 // ============================================================
-// MAIN GAME LOOP
+// PAUSE MENU (ESC)
 // ============================================================
+function handlePauseMenuAction() {
+    if (pauseMenuIdx === 0) {
+        state = 'overworld';
+    } else if (pauseMenuIdx === 1) {
+        clearProgress();
+        location.reload();
+    } else if (pauseMenuIdx === 2) {
+        window.location.href = 'index.html';
+    }
+}
+
 function drawPauseMenu() {
-    // Dim overlay
+    // Dark overlay
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    // Dialog box
-    const bw = 320, bh = 64;
+    // Menu box
+    const bw = 200, bh = 130;
     const bx = (CANVAS_W - bw) / 2, by = (CANVAS_H - bh) / 2;
     drawBox(bx, by, bw, bh);
-    drawText('Exit to classic mode?', bx + 16, by + 16, PAL.black, 1.1);
-    drawText('SPACE=yes  ESC=cancel', bx + 16, by + 40, PAL.darkGray, 1);
+    const items = ['Continue', 'New Game', 'Exit'];
+    for (let i = 0; i < items.length; i++) {
+        const iy = by + 24 + i * 30;
+        if (i === pauseMenuIdx) {
+            ctx.fillStyle = PAL.yellow;
+            ctx.fillRect(bx + 16, iy - 2, bw - 32, 22);
+            drawText('> ' + items[i], bx + 22, iy + 2, PAL.black, 1.1);
+        } else {
+            drawText('  ' + items[i], bx + 22, iy + 2, PAL.darkGray, 1);
+        }
+    }
+    drawText('ESC to resume', bx + 50, by + bh - 18, PAL.gray, 0.9);
 }
+
+// ============================================================
+// MINIMAP (overworld only)
+// ============================================================
+function drawMinimap() {
+    const scale = 3;
+    const mapW = COLS * scale;
+    const mapH = ROWS * scale;
+    const mx = 8, my = 8;
+
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(mx - 1, my - 1, mapW + 2, mapH + 2);
+
+    for (let ty = 0; ty < ROWS; ty++) {
+        for (let tx = 0; tx < COLS; tx++) {
+            const tile = MAP[ty][tx];
+            let color;
+            switch (tile) {
+                case 0: color = PAL.green; break;
+                case 1: color = PAL.tan; break;
+                case 2: color = PAL.darkGreen; break;
+                case 3: color = PAL.water; break;
+                case 4: color = PAL.green; break;
+                case 5: color = '#9898a0'; break;
+                case 6: color = '#e8d8a8'; break;
+                case 7: color = '#1a5c2a'; break;
+                case 8: color = PAL.brown; break;
+                case 9: color = '#404040'; break;
+                case 10: color = '#808080'; break;
+                case 11: color = '#267842'; break;
+                case 12: color = '#a8a098'; break;
+                case 13: color = PAL.green; break;
+                default: color = PAL.black;
+            }
+            ctx.fillStyle = color;
+            ctx.fillRect(mx + tx * scale, my + ty * scale, scale, scale);
+        }
+    }
+
+    // NPC dots
+    for (const npc of NPCS) {
+        const completed = badges.has(npc.id);
+        ctx.fillStyle = completed ? '#666' : npc.color;
+        ctx.fillRect(mx + npc.x * scale, my + npc.y * scale, scale, scale);
+    }
+
+    // Blinking player dot
+    if (Math.floor(Date.now() / 300) % 2 === 0) {
+        ctx.fillStyle = '#fff';
+    } else {
+        ctx.fillStyle = PAL.yellow;
+    }
+    ctx.fillRect(mx + player.x * scale, my + player.y * scale, scale, scale);
+
+    ctx.globalAlpha = 1.0;
+}
+
+// ============================================================
+// MOUSE/TOUCH SUPPORT
+// ============================================================
+canvas.addEventListener('click', handleCanvasClick);
+canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_W / rect.width;
+    const scaleY = CANVAS_H / rect.height;
+    const x = (touch.clientX - rect.left) * scaleX;
+    const y = (touch.clientY - rect.top) * scaleY;
+    handleClickAt(x, y);
+}, { passive: false });
+
+function handleCanvasClick(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_W / rect.width;
+    const scaleY = CANVAS_H / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    handleClickAt(x, y);
+}
+
+function handleClickAt(x, y) {
+    if (state === 'title') {
+        handleAction();
+    } else if (state === 'nameSelect') {
+        const spriteSpacing = 72;
+        const spriteStartX = (CANVAS_W - (TEAM.length * spriteSpacing)) / 2 + 20;
+        for (let i = 0; i < TEAM.length; i++) {
+            const sx = spriteStartX + i * spriteSpacing;
+            if (x >= sx - 6 && x <= sx + 36 && y >= 30 && y <= 100) {
+                nameSelectIdx = i;
+                handleAction();
+                return;
+            }
+        }
+    } else if (state === 'dialogue') {
+        handleAction();
+    } else if (state === 'battle' && battleState.phase === 'emoji') {
+        const cols = 8;
+        const cellW = 52;
+        const cellH = 42;
+        const startX = 24;
+        const startY = 174;
+        const total = Math.min(EMOJIS.length, 24);
+
+        for (let i = 0; i < total; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const ex = startX + col * cellW;
+            const ey = startY + row * cellH;
+            if (x >= ex && x <= ex + 30 && y >= ey && y <= ey + 30) {
+                battleState.emojiIdx = i;
+                return;
+            }
+        }
+        // Confirm button
+        if (x >= confirmBtnX && x <= confirmBtnX + confirmBtnW && y >= confirmBtnY && y <= confirmBtnY + confirmBtnH) {
+            const emoji = EMOJIS[battleState.emojiIdx];
+            checkInData.vibe = emoji;
+            battleState.phase = 'complete';
+        }
+    } else if (state === 'battle' && battleState.phase === 'prompt') {
+        handleAction();
+    } else if (state === 'battle' && battleState.phase === 'text') {
+        hiddenInput.focus();
+    } else if (state === 'battle' && battleState.phase === 'complete') {
+        handleAction();
+    } else if (state === 'pauseMenu') {
+        const bw = 200, bh = 130;
+        const bx = (CANVAS_W - bw) / 2, by = (CANVAS_H - bh) / 2;
+        for (let i = 0; i < 3; i++) {
+            const iy = by + 24 + i * 30;
+            if (x >= bx + 16 && x <= bx + bw - 16 && y >= iy - 2 && y <= iy + 20) {
+                pauseMenuIdx = i;
+                handlePauseMenuAction();
+                return;
+            }
+        }
+    } else if (state === 'complete') {
+        if (completeTimer > 60) handleAction();
+    } else if (state === 'snippetBattle') {
+        handleAction();
+    }
+}
+
+// ============================================================
+// MAIN GAME LOOP
+// ============================================================
 
 function gameLoop() {
     // Water animation tick
@@ -2294,6 +2527,7 @@ function gameLoop() {
         case 'overworld':
             movePlayer();
             drawOverworld();
+            drawMinimap();
             break;
         case 'dialogue':
             drawDialogueBox();
@@ -2319,6 +2553,11 @@ function gameLoop() {
     }
 
     requestAnimationFrame(gameLoop);
+}
+
+// Load saved progress on startup
+if (loadProgress()) {
+    state = 'overworld';
 }
 
 // Start the loop
