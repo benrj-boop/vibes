@@ -3,485 +3,1089 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibe Check — Adventure Mode</title>
+    <title>VIBE CHECK — Adventure Mode</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #0f0f23;
-            color: #e0e0e0;
-            font-family: 'Courier New', monospace;
+            background: #111;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
-            padding: 1rem;
+            font-family: monospace;
             overflow: hidden;
         }
         #gameContainer {
             position: relative;
-            width: 640px;
-            height: 480px;
-            border: 3px solid #333;
-            border-radius: 12px;
-            overflow: hidden;
-            image-rendering: pixelated;
+            width: 768px;
+            height: 576px;
+            border: 6px solid #222;
+            border-radius: 8px;
+            background: #000;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
         }
         canvas {
             width: 100%;
             height: 100%;
             image-rendering: pixelated;
-        }
-        .game-header {
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-        .game-header h1 {
-            font-size: 1.5rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .game-header p { font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
-        .badges {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-            justify-content: center;
-        }
-        .badge {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            opacity: 0.3;
-            transition: all 0.3s;
-        }
-        .badge.earned {
-            opacity: 1;
-            border-color: #667eea;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.4);
-        }
-        .controls-hint {
-            font-size: 0.7rem;
-            color: #555;
-            margin-top: 0.5rem;
-            text-align: center;
+            image-rendering: crisp-edges;
+            display: block;
         }
         .mode-toggle {
             position: fixed;
             top: 1rem;
             right: 1rem;
-            padding: 0.5rem 1rem;
-            border: 1px solid #333;
-            border-radius: 8px;
-            background: #1a1a2e;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #222;
             color: #888;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
+            font-family: monospace;
             cursor: pointer;
             text-decoration: none;
-            transition: all 0.2s;
+            z-index: 100;
         }
-        .mode-toggle:hover { border-color: #667eea; color: #fff; }
-
-        /* Battle/Dialogue overlay */
-        .battle-overlay {
-            display: none;
+        .mode-toggle:hover { border-color: #888; color: #fff; }
+        .controls-hint {
+            font-size: 0.65rem;
+            color: #444;
+            margin-top: 0.5rem;
+            font-family: monospace;
+        }
+        /* Hidden input for text encounters */
+        #hiddenInput {
             position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 10;
-            flex-direction: column;
-            padding: 2rem;
+            left: -9999px;
+            opacity: 0;
         }
-        .battle-overlay.active { display: flex; }
-        .battle-title {
-            font-size: 1.2rem;
-            color: #fff;
-            text-align: center;
-            margin-bottom: 0.5rem;
-            animation: battleFlash 0.5s ease;
-        }
-        @keyframes battleFlash {
-            0% { opacity: 0; transform: scale(0.8); }
-            50% { transform: scale(1.1); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-        .battle-subtitle {
-            font-size: 0.8rem;
-            color: #888;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        .battle-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .battle-emoji-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 0.4rem;
-            max-width: 360px;
-            margin-bottom: 1rem;
-        }
-        .battle-emoji-btn {
-            font-size: 1.5rem;
-            padding: 0.5rem;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            background: #1a1a2e;
-            cursor: pointer;
-            transition: all 0.1s;
-            text-align: center;
-        }
-        .battle-emoji-btn:hover {
-            background: #2a2a4e;
-            transform: scale(1.15);
-            border-color: #667eea;
-        }
-        .battle-emoji-btn.selected {
-            border-color: #764ba2;
-            background: #2a2a4e;
-            transform: scale(1.2);
-        }
-        .battle-textarea {
-            width: 100%;
-            max-width: 400px;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            border: 2px solid #333;
-            background: #1a1a2e;
-            color: #fff;
-            font-size: 0.9rem;
-            font-family: inherit;
-            outline: none;
-            resize: none;
-            min-height: 80px;
-            margin-bottom: 1rem;
-            transition: border-color 0.2s;
-        }
-        .battle-textarea:focus { border-color: #667eea; }
-        .battle-textarea::placeholder { color: #555; }
-        .battle-actions {
-            display: flex;
-            gap: 0.75rem;
-        }
-        .battle-btn {
-            padding: 0.6rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s;
-            font-family: inherit;
-        }
-        .battle-btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: #fff;
-        }
-        .battle-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102,126,234,0.3); }
-        .battle-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-        .battle-btn-skip {
-            background: #2a2a4e;
-            color: #888;
-        }
-        .battle-btn-skip:hover { color: #ccc; }
-
-        /* Dialogue box (Pokemon style) */
-        .dialogue-box {
-            display: none;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #fff;
-            color: #222;
-            padding: 1rem 1.5rem;
-            font-size: 1rem;
-            line-height: 1.5;
-            border-top: 4px solid #333;
-            min-height: 80px;
-            z-index: 5;
-        }
-        .dialogue-box.active { display: block; }
-        .dialogue-box .dialogue-continue {
-            position: absolute;
-            bottom: 0.5rem;
-            right: 1rem;
-            font-size: 0.7rem;
-            color: #888;
-            animation: blink 1s infinite;
-        }
-        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* Name select screen */
-        .name-select {
-            display: flex;
-            position: absolute;
-            inset: 0;
-            background: #0f0f23;
-            z-index: 20;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 1.5rem;
-        }
-        .name-select.hidden { display: none; }
-        .name-select h2 {
-            font-size: 1.3rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .name-select-grid {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .name-select-btn {
-            padding: 1rem 2rem;
-            border: 2px solid #333;
-            border-radius: 12px;
-            background: #1a1a2e;
-            color: #ccc;
-            font-size: 1rem;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .name-select-btn:hover {
-            border-color: #667eea;
-            background: #2a2a4e;
-            color: #fff;
-            transform: scale(1.05);
-        }
-
-        /* Completion screen */
-        .complete-screen {
-            display: none;
-            position: absolute;
-            inset: 0;
-            background: #0f0f23;
-            z-index: 20;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            text-align: center;
-        }
-        .complete-screen.active { display: flex; }
-        .complete-screen h2 { font-size: 1.5rem; color: #4ade80; }
-        .complete-screen p { color: #888; font-size: 0.9rem; }
-        .complete-emoji { font-size: 4rem; animation: bounce 0.6s ease infinite alternate; }
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
     </style>
 </head>
 <body>
-    <a href="index.html" class="mode-toggle">classic mode</a>
-
-    <div class="game-header">
-        <h1>vibe check: adventure mode</h1>
-        <p>explore stripe island and complete your check-in</p>
-        <div class="badges" id="badges">
-            <div class="badge" id="badge-vibe" title="Vibe">🎭</div>
-            <div class="badge" id="badge-feeling" title="Feeling">💭</div>
-            <div class="badge" id="badge-forward" title="Looking Forward">🌅</div>
-            <div class="badge" id="badge-proud" title="Proud Of">🏆</div>
-            <div class="badge" id="badge-discuss" title="Discuss">🗣️</div>
-        </div>
-    </div>
-
+    <a href="index.html" class="mode-toggle">[ classic mode ]</a>
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="640" height="480"></canvas>
-
-        <!-- Name selection -->
-        <div class="name-select" id="nameSelect">
-            <h2>who are you?</h2>
-            <div class="name-select-grid" id="nameGrid"></div>
-        </div>
-
-        <!-- Battle overlay -->
-        <div class="battle-overlay" id="battleOverlay">
-            <div class="battle-title" id="battleTitle"></div>
-            <div class="battle-subtitle" id="battleSubtitle"></div>
-            <div class="battle-content" id="battleContent"></div>
-            <div class="battle-actions" id="battleActions"></div>
-        </div>
-
-        <!-- Dialogue box -->
-        <div class="dialogue-box" id="dialogueBox">
-            <span id="dialogueText"></span>
-            <span class="dialogue-continue">▼ SPACE</span>
-        </div>
-
-        <!-- Completion -->
-        <div class="complete-screen" id="completeScreen">
-            <div class="complete-emoji">🎉</div>
-            <h2>vibe check complete!</h2>
-            <p>your check-in has been saved</p>
-            <button class="battle-btn battle-btn-primary" onclick="location.reload()" style="margin-top:1rem">play again</button>
-        </div>
+        <canvas id="gameCanvas" width="256" height="192"></canvas>
     </div>
-
-    <p class="controls-hint">arrow keys to move — space to interact — explore the island!</p>
+    <p class="controls-hint">ARROWS/WASD: move | SPACE/ENTER: interact | explore the island!</p>
+    <input type="text" id="hiddenInput" maxlength="140" autocomplete="off" />
 
 <script>
-const TEAM = ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
-const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','💪','😅','🫠','✨','🌊','🎯','🤯','😎','🥲','🫡','🦾','🌈','😬','🍕','⚡'];
+// ============================================================
+// VIBE CHECK: POKEMON-STYLE RPG
+// Single-file HTML game — GBC era aesthetics
+// ============================================================
+
+const CANVAS_W = 256;
+const CANVAS_H = 192;
+const TILE = 16;
+const COLS = CANVAS_W / TILE; // 16
+const ROWS = CANVAS_H / TILE; // 12
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 
+const hiddenInput = document.getElementById('hiddenInput');
+
+// ============================================================
+// COLOR PALETTE (GBC-inspired)
+// ============================================================
+const PAL = {
+    black: '#081820',
+    darkGreen: '#1e4d2b',
+    green: '#2d8b4e',
+    lightGreen: '#88d058',
+    paleGreen: '#c8e898',
+    brown: '#8b5e3c',
+    darkBrown: '#5c3a1e',
+    tan: '#d4a76a',
+    lightTan: '#f0d8a0',
+    water: '#3080c0',
+    waterLight: '#68b8e8',
+    waterDark: '#185888',
+    white: '#f8f8f0',
+    offWhite: '#e8e8d8',
+    gray: '#888888',
+    darkGray: '#484848',
+    red: '#c83038',
+    blue: '#3060b8',
+    purple: '#7848a0',
+    yellow: '#f8d030',
+};
+
+// ============================================================
+// TEAM & DATA
+// ============================================================
+const TEAM = ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','💪','😅','🫠','✨','🌊','🎯','🤯','😎','🥲','🫡','🦾','🌈','😬','🍕','⚡'];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let state = 'title'; // title, nameSelect, overworld, dialogue, encounter, battle, complete
 let playerName = null;
-let gameState = 'nameSelect';
-let player = { x: 320, y: 360, dir: 'down', frame: 0, frameTimer: 0 };
+let player = { x: 7, y: 8, px: 7*TILE, py: 8*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
 let keys = {};
-let dialogueQueue = [];
-let currentEncounter = null;
-let completedEncounters = new Set();
+let keysJustPressed = {};
+let dialogueLines = [];
+let dialogueIdx = 0;
+let dialogueCallback = null;
+let titleAnimTimer = 0;
+let nameSelectIdx = 0;
+let encounters = {};
 let checkInData = { vibe: null, feeling: '', lookingForward: '', proudOf: '', talkAbout: '' };
+let badges = new Set();
+let battleState = {};
+let textInputActive = false;
+let textInputValue = '';
+let textInputCursor = 0;
+let textCursorBlink = 0;
+let transitionTimer = 0;
+let transitionType = null;
+let transitionCallback = null;
+let completeTimer = 0;
+let particles = [];
 
-// Map zones (NPCs/encounter spots)
-const ZONES = [
-    { id: 'vibe', x: 160, y: 120, w: 64, h: 64, emoji: '🎭', label: 'Emoji Shrine', badge: 'badge-vibe',
-      encounter: { title: 'A wild VIBE CHECK appeared!', subtitle: 'pick your vibe energy', type: 'emoji' } },
-    { id: 'feeling', x: 480, y: 120, w: 64, h: 64, emoji: '💭', label: 'Feelings Fountain', badge: 'badge-feeling',
-      encounter: { title: 'The fountain speaks...', subtitle: 'how are you feeling today?', type: 'text', field: 'feeling', placeholder: 'in a sentence or less...' } },
-    { id: 'forward', x: 100, y: 300, w: 64, h: 64, emoji: '🌅', label: 'Forward Bridge', badge: 'badge-forward',
-      encounter: { title: 'You gaze across the bridge...', subtitle: 'one thing you\'re looking forward to?', type: 'text', field: 'lookingForward', placeholder: 'big or small, anything counts...' } },
-    { id: 'proud', x: 520, y: 300, w: 64, h: 64, emoji: '🏆', label: 'Pride Peak', badge: 'badge-proud',
-      encounter: { title: 'The mountain asks...', subtitle: 'something you were proud of this week?', type: 'text', field: 'proudOf', placeholder: 'a win, a moment, a thing you shipped...' } },
-    { id: 'discuss', x: 320, y: 200, w: 64, h: 64, emoji: '🗣️', label: 'Discussion Den', badge: 'badge-discuss',
-      encounter: { title: 'The elders convene...', subtitle: 'anything we need to talk about today?', type: 'text', field: 'talkAbout', placeholder: 'blockers, ideas, stuff on your mind...' } },
+// Direction: 0=down, 1=up, 2=left, 3=right
+const DIR_DX = [0, 0, -1, 1];
+const DIR_DY = [1, -1, 0, 0];
+
+// ============================================================
+// MAP DATA (16x12 tiles)
+// 0=grass, 1=path, 2=tree, 3=water, 4=flower, 5=building, 6=sign, 7=fence
+// ============================================================
+const MAP = [
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+    [2,0,0,4,0,0,1,1,1,1,0,0,4,0,0,2],
+    [2,0,0,0,0,0,1,0,0,1,0,0,0,0,0,2],
+    [2,4,0,0,0,0,1,0,0,1,0,0,0,0,4,2],
+    [2,0,0,0,2,0,1,0,0,1,0,2,0,0,0,2],
+    [2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
+    [2,0,0,0,0,0,1,3,3,1,0,0,0,0,0,2],
+    [2,0,0,0,0,0,1,3,3,1,0,0,0,0,0,2],
+    [2,0,4,0,0,0,1,1,1,1,0,0,0,4,0,2],
+    [2,0,0,0,0,0,1,0,0,1,0,0,0,0,0,2],
+    [2,0,0,4,0,0,1,0,0,1,0,0,4,0,0,2],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
 ];
 
-// Trees/decorations
-const TREES = [
-    { x: 50, y: 50 }, { x: 580, y: 50 }, { x: 50, y: 420 }, { x: 580, y: 420 },
-    { x: 300, y: 50 }, { x: 400, y: 400 }, { x: 80, y: 200 }, { x: 560, y: 200 },
+// NPC locations and data
+const NPCS = [
+    { id: 'vibe', x: 3, y: 2, color: PAL.red, name: 'EMOJI SHRINE', badge: 'Vibe',
+      dialogue: ['This is the EMOJI SHRINE!', 'Choose an emoji that represents your vibe today.'],
+      encounter: { type: 'emoji', title: 'EMOJI SHRINE' } },
+    { id: 'feeling', x: 12, y: 2, color: PAL.blue, name: 'FEELINGS FOUNTAIN', badge: 'Feeling',
+      dialogue: ['Welcome to the FEELINGS FOUNTAIN.', 'Tell me... how are you feeling today?'],
+      encounter: { type: 'text', title: 'FEELINGS FOUNTAIN', field: 'feeling', prompt: 'How are you feeling today?' } },
+    { id: 'forward', x: 2, y: 7, color: PAL.purple, name: 'FORWARD BRIDGE', badge: 'Forward',
+      dialogue: ['You stand at the FORWARD BRIDGE...', 'What is one thing you are looking forward to?'],
+      encounter: { type: 'text', title: 'FORWARD BRIDGE', field: 'lookingForward', prompt: 'One thing you\'re looking forward to?' } },
+    { id: 'proud', x: 13, y: 7, color: PAL.yellow, name: 'PRIDE PEAK', badge: 'Proud',
+      dialogue: ['You have reached PRIDE PEAK!', 'Tell me something you were proud of this week.'],
+      encounter: { type: 'text', title: 'PRIDE PEAK', field: 'proudOf', prompt: 'Something you were proud of this week?' } },
+    { id: 'discuss', x: 7, y: 10, color: PAL.green, name: 'DISCUSSION DEN', badge: 'Discuss',
+      dialogue: ['The DISCUSSION DEN awaits...', 'Is there anything we need to talk about today?'],
+      encounter: { type: 'text', title: 'DISCUSSION DEN', field: 'talkAbout', prompt: 'Anything we need to talk about today?' } },
 ];
 
-// Name select
-const nameGrid = document.getElementById('nameGrid');
-TEAM.forEach(name => {
-    const btn = document.createElement('button');
-    btn.className = 'name-select-btn';
-    btn.textContent = name;
-    btn.onclick = () => startGame(name);
-    nameGrid.appendChild(btn);
+// ============================================================
+// PIXEL FONT (simple 5x7 bitmap font for key characters)
+// ============================================================
+const FONT_DATA = {};
+function initFont() {
+    // We'll use canvas measureText with monospace for simplicity
+    // but draw with a chunky pixel style
+}
+
+function drawText(text, x, y, color = PAL.black, scale = 1) {
+    ctx.fillStyle = color;
+    ctx.font = `${7 * scale}px monospace`;
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, x, y);
+}
+
+function drawTextCentered(text, x, y, color = PAL.black, scale = 1) {
+    ctx.fillStyle = color;
+    ctx.font = `${7 * scale}px monospace`;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'start';
+}
+
+// ============================================================
+// SPRITE DRAWING (all pixel art via canvas)
+// ============================================================
+function drawTile(tx, ty, type) {
+    const x = tx * TILE;
+    const y = ty * TILE;
+
+    switch(type) {
+        case 0: // Grass
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, TILE, TILE);
+            // Grass detail
+            ctx.fillStyle = PAL.lightGreen;
+            if ((tx + ty) % 3 === 0) {
+                ctx.fillRect(x+3, y+6, 2, 3);
+                ctx.fillRect(x+9, y+10, 2, 3);
+            }
+            if ((tx + ty) % 5 === 0) {
+                ctx.fillRect(x+7, y+3, 2, 3);
+            }
+            break;
+        case 1: // Path
+            ctx.fillStyle = PAL.tan;
+            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillStyle = PAL.lightTan;
+            ctx.fillRect(x+2, y+2, 4, 4);
+            ctx.fillRect(x+10, y+8, 4, 4);
+            break;
+        case 2: // Tree
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, TILE, TILE);
+            // Trunk
+            ctx.fillStyle = PAL.darkBrown;
+            ctx.fillRect(x+6, y+10, 4, 6);
+            // Canopy
+            ctx.fillStyle = PAL.darkGreen;
+            ctx.fillRect(x+2, y+2, 12, 10);
+            ctx.fillRect(x+4, y+0, 8, 4);
+            // Highlight
+            ctx.fillStyle = PAL.lightGreen;
+            ctx.fillRect(x+4, y+3, 4, 3);
+            break;
+        case 3: // Water
+            ctx.fillStyle = PAL.water;
+            ctx.fillRect(x, y, TILE, TILE);
+            // Ripples
+            ctx.fillStyle = PAL.waterLight;
+            const waveOff = Math.floor(Date.now() / 500) % 4;
+            ctx.fillRect(x + ((waveOff + tx*3) % 12), y+4, 6, 2);
+            ctx.fillRect(x + ((waveOff + tx*7 + 6) % 12), y+10, 5, 2);
+            break;
+        case 4: // Flower
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, TILE, TILE);
+            // Flower
+            ctx.fillStyle = PAL.red;
+            ctx.fillRect(x+6, y+5, 4, 4);
+            ctx.fillStyle = PAL.yellow;
+            ctx.fillRect(x+7, y+6, 2, 2);
+            // Stem
+            ctx.fillStyle = PAL.darkGreen;
+            ctx.fillRect(x+7, y+9, 2, 4);
+            break;
+    }
+}
+
+function drawNPC(npc) {
+    const x = npc.x * TILE;
+    const y = npc.y * TILE;
+    const completed = badges.has(npc.id);
+
+    // Body
+    ctx.fillStyle = completed ? PAL.gray : npc.color;
+    ctx.fillRect(x+4, y+4, 8, 10);
+    // Head
+    ctx.fillStyle = PAL.lightTan;
+    ctx.fillRect(x+5, y+1, 6, 5);
+    // Eyes
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(x+6, y+3, 2, 2);
+    ctx.fillRect(x+9, y+3, 2, 2);
+    // Hat/identifier colored top
+    ctx.fillStyle = completed ? PAL.darkGray : npc.color;
+    ctx.fillRect(x+4, y+0, 8, 2);
+
+    // Exclamation mark if not completed
+    if (!completed) {
+        const bounce = Math.sin(Date.now() / 300) * 2;
+        ctx.fillStyle = PAL.yellow;
+        ctx.fillRect(x+7, y - 6 + bounce, 2, 3);
+        ctx.fillRect(x+7, y - 2 + bounce, 2, 1);
+    }
+}
+
+function drawPlayer() {
+    const x = Math.round(player.px);
+    const y = Math.round(player.py);
+    const frame = player.step;
+    const dir = player.dir;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(x+3, y+13, 10, 3);
+
+    // Body
+    ctx.fillStyle = PAL.blue;
+    ctx.fillRect(x+4, y+6, 8, 8);
+
+    // Legs (animated)
+    ctx.fillStyle = PAL.darkBrown;
+    if (player.moving) {
+        if (frame % 2 === 0) {
+            ctx.fillRect(x+5, y+13, 3, 3);
+            ctx.fillRect(x+9, y+14, 3, 2);
+        } else {
+            ctx.fillRect(x+5, y+14, 3, 2);
+            ctx.fillRect(x+9, y+13, 3, 3);
+        }
+    } else {
+        ctx.fillRect(x+5, y+14, 3, 2);
+        ctx.fillRect(x+9, y+14, 3, 2);
+    }
+
+    // Head
+    ctx.fillStyle = PAL.lightTan;
+    ctx.fillRect(x+4, y+1, 8, 7);
+
+    // Hair
+    ctx.fillStyle = PAL.darkBrown;
+    ctx.fillRect(x+3, y+0, 10, 3);
+    ctx.fillRect(x+3, y+1, 2, 4);
+
+    // Eyes based on direction
+    ctx.fillStyle = PAL.black;
+    if (dir === 0) { // down
+        ctx.fillRect(x+5, y+4, 2, 2);
+        ctx.fillRect(x+9, y+4, 2, 2);
+    } else if (dir === 1) { // up
+        // Back of head - no eyes visible
+        ctx.fillStyle = PAL.darkBrown;
+        ctx.fillRect(x+4, y+1, 8, 5);
+    } else if (dir === 2) { // left
+        ctx.fillRect(x+4, y+4, 2, 2);
+    } else { // right
+        ctx.fillRect(x+10, y+4, 2, 2);
+    }
+
+    // Cap
+    ctx.fillStyle = PAL.red;
+    ctx.fillRect(x+4, y+0, 8, 2);
+    if (dir === 3) ctx.fillRect(x+12, y+0, 3, 2);
+    if (dir === 2) ctx.fillRect(x+1, y+0, 3, 2);
+}
+
+// ============================================================
+// TITLE SCREEN
+// ============================================================
+function drawTitle() {
+    titleAnimTimer++;
+
+    // Background
+    ctx.fillStyle = PAL.darkGreen;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // Decorative pattern
+    for (let i = 0; i < 16; i++) {
+        for (let j = 0; j < 12; j++) {
+            if ((i + j) % 4 === 0) {
+                ctx.fillStyle = PAL.green;
+                ctx.fillRect(i*16+2, j*16+2, 12, 12);
+            }
+        }
+    }
+
+    // Title box
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(30, 30, CANVAS_W-60, 70);
+    ctx.fillStyle = PAL.white;
+    ctx.fillRect(32, 32, CANVAS_W-64, 66);
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(34, 34, CANVAS_W-68, 62);
+
+    // Title text
+    const titleY = 48;
+    ctx.fillStyle = PAL.yellow;
+    ctx.font = '16px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('VIBE CHECK', CANVAS_W/2, titleY);
+    ctx.fillStyle = PAL.white;
+    ctx.font = '8px monospace';
+    ctx.fillText('ADVENTURE MODE', CANVAS_W/2, titleY + 22);
+    ctx.fillText('v2.0', CANVAS_W/2, titleY + 34);
+
+    // Animated Pokemon-style sprite in center
+    const sprY = 115 + Math.sin(titleAnimTimer / 20) * 3;
+    // Draw a little character
+    ctx.fillStyle = PAL.blue;
+    ctx.fillRect(120, sprY, 16, 16);
+    ctx.fillStyle = PAL.lightTan;
+    ctx.fillRect(122, sprY-6, 12, 8);
+    ctx.fillStyle = PAL.red;
+    ctx.fillRect(122, sprY-8, 12, 3);
+
+    // Version/copyright style text
+    ctx.fillStyle = PAL.lightGreen;
+    ctx.font = '7px monospace';
+    ctx.fillText('2026 STRIPE APAC PMM', CANVAS_W/2, 145);
+
+    // Press Start (blinking)
+    if (Math.floor(titleAnimTimer / 30) % 2 === 0) {
+        ctx.fillStyle = PAL.white;
+        ctx.font = '8px monospace';
+        ctx.fillText('PRESS START', CANVAS_W/2, 170);
+    }
+
+    ctx.textAlign = 'start';
+}
+
+// ============================================================
+// NAME SELECT SCREEN
+// ============================================================
+function drawNameSelect() {
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // Border box
+    drawBox(16, 8, CANVAS_W-32, 24);
+    drawText('Who are you?', 24, 16, PAL.black, 1);
+
+    // Name options
+    const startY = 44;
+    const itemH = 20;
+    drawBox(40, startY - 4, CANVAS_W-80, TEAM.length * itemH + 8);
+
+    for (let i = 0; i < TEAM.length; i++) {
+        const y = startY + i * itemH;
+        const selected = i === nameSelectIdx;
+        if (selected) {
+            drawText('▶', 48, y + 2, PAL.black, 1);
+        }
+        drawText(TEAM[i], 62, y + 2, PAL.black, 1);
+    }
+
+    // Instructions
+    drawText('UP/DOWN: select  SPACE: confirm', 30, CANVAS_H - 16, PAL.gray, 1);
+}
+
+// ============================================================
+// OVERWORLD
+// ============================================================
+function drawOverworld() {
+    // Draw map tiles
+    for (let ty = 0; ty < ROWS; ty++) {
+        for (let tx = 0; tx < COLS; tx++) {
+            drawTile(tx, ty, MAP[ty][tx]);
+        }
+    }
+
+    // Draw NPCs
+    for (const npc of NPCS) {
+        drawNPC(npc);
+    }
+
+    // Draw player
+    drawPlayer();
+
+    // Interaction prompt
+    if (state === 'overworld') {
+        const facing = getFacingTile();
+        for (const npc of NPCS) {
+            if (npc.x === facing.x && npc.y === facing.y) {
+                // Draw small prompt above NPC
+                const nx = npc.x * TILE;
+                const ny = npc.y * TILE;
+                if (!badges.has(npc.id)) {
+                    ctx.fillStyle = PAL.black;
+                    ctx.fillRect(nx-2, ny-12, npc.name.length * 4 + 8, 9);
+                    drawText(npc.name, nx, ny-11, PAL.white, 1);
+                }
+            }
+        }
+    }
+
+    // Badge display at top
+    drawBadgeBar();
+}
+
+function drawBadgeBar() {
+    const badgeIcons = ['V','F','B','P','D'];
+    const badgeColors = [PAL.red, PAL.blue, PAL.purple, PAL.yellow, PAL.green];
+    const startX = CANVAS_W - 76;
+    const y = 2;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(startX - 4, y - 1, 76, 12);
+
+    const npcIds = ['vibe','feeling','forward','proud','discuss'];
+    for (let i = 0; i < 5; i++) {
+        const bx = startX + i * 14;
+        const earned = badges.has(npcIds[i]);
+        ctx.fillStyle = earned ? badgeColors[i] : PAL.darkGray;
+        ctx.fillRect(bx, y, 10, 10);
+        ctx.fillStyle = earned ? PAL.white : PAL.black;
+        ctx.font = '6px monospace';
+        ctx.fillText(badgeIcons[i], bx+3, y+8);
+    }
+}
+
+// ============================================================
+// DIALOGUE BOX
+// ============================================================
+function drawDialogueBox() {
+    if (state !== 'dialogue' && state !== 'encounter') return;
+
+    // Draw the overworld behind
+    drawOverworld();
+
+    // Dialogue box at bottom
+    const boxY = CANVAS_H - 48;
+    drawBox(4, boxY, CANVAS_W - 8, 44);
+
+    if (dialogueLines.length > 0 && dialogueIdx < dialogueLines.length) {
+        // Word wrap the text
+        const text = dialogueLines[dialogueIdx];
+        const maxChars = 36;
+        const line1 = text.substring(0, maxChars);
+        const line2 = text.substring(maxChars, maxChars * 2);
+
+        drawText(line1, 14, boxY + 10, PAL.black, 1);
+        if (line2) drawText(line2, 14, boxY + 22, PAL.black, 1);
+
+        // Blinking triangle
+        if (Math.floor(Date.now() / 400) % 2 === 0) {
+            ctx.fillStyle = PAL.black;
+            ctx.fillRect(CANVAS_W - 20, boxY + 34, 6, 4);
+            ctx.fillRect(CANVAS_W - 18, boxY + 38, 2, 2);
+        }
+    }
+}
+
+// ============================================================
+// BATTLE SCREEN
+// ============================================================
+function drawBattle() {
+    if (!battleState.active) return;
+
+    // Background
+    ctx.fillStyle = PAL.paleGreen;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // Top half: battle scene gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, 96);
+    gradient.addColorStop(0, '#88c070');
+    gradient.addColorStop(1, '#a8d890');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_W, 96);
+
+    // Ground patches
+    ctx.fillStyle = '#78b858';
+    ctx.fillRect(0, 80, CANVAS_W, 16);
+
+    // Enemy side (right top) - the encounter icon
+    const enemyX = CANVAS_W - 70;
+    const enemyY = 20;
+    // Platform
+    ctx.fillStyle = '#60a040';
+    ctx.fillRect(enemyX - 20, enemyY + 36, 60, 8);
+
+    // Draw encounter "sprite" (colored shape representing the station)
+    const enc = battleState.encounter;
+    ctx.fillStyle = battleState.npcColor;
+    ctx.fillRect(enemyX, enemyY, 24, 32);
+    ctx.fillStyle = PAL.white;
+    ctx.fillRect(enemyX + 4, enemyY + 4, 16, 16);
+    ctx.fillStyle = battleState.npcColor;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(enc.type === 'emoji' ? '?!' : '...', enemyX + 12, enemyY + 14);
+    ctx.textAlign = 'start';
+
+    // Player side (left bottom)
+    const playerSprX = 30;
+    const playerSprY = 50;
+    // Platform
+    ctx.fillStyle = '#60a040';
+    ctx.fillRect(playerSprX - 10, playerSprY + 34, 50, 8);
+    // Draw player from behind (larger)
+    ctx.fillStyle = PAL.blue;
+    ctx.fillRect(playerSprX + 4, playerSprY + 8, 24, 24);
+    ctx.fillStyle = PAL.darkBrown;
+    ctx.fillRect(playerSprX + 6, playerSprY, 20, 12);
+    ctx.fillStyle = PAL.red;
+    ctx.fillRect(playerSprX + 6, playerSprY - 2, 20, 4);
+    ctx.fillStyle = PAL.lightTan;
+    ctx.fillRect(playerSprX + 8, playerSprY + 2, 16, 8);
+
+    // Enemy info box (top left)
+    drawBox(4, 4, 100, 28);
+    drawText(enc.title, 10, 10, PAL.black, 1);
+    // HP-style progress bar
+    ctx.fillStyle = PAL.darkGray;
+    ctx.fillRect(10, 22, 88, 4);
+    const progress = badges.size / 5;
+    ctx.fillStyle = PAL.green;
+    ctx.fillRect(10, 22, 88 * progress, 4);
+
+    // Player info box (bottom right area)
+    drawBox(CANVAS_W - 110, 70, 106, 28);
+    drawText(playerName || 'PLAYER', CANVAS_W - 104, 76, PAL.black, 1);
+    ctx.fillStyle = PAL.darkGray;
+    ctx.fillRect(CANVAS_W - 104, 88, 88, 4);
+    ctx.fillStyle = PAL.green;
+    ctx.fillRect(CANVAS_W - 104, 88, 88, 4);
+
+    // Bottom section: action area
+    if (battleState.phase === 'prompt') {
+        // "What will [name] do?" textbox
+        drawBox(4, CANVAS_H - 48, CANVAS_W - 8, 44);
+        drawText('What will ' + (playerName||'PLAYER') + ' do?', 14, CANVAS_H - 40, PAL.black, 1);
+        // Press SPACE prompt
+        if (Math.floor(Date.now() / 500) % 2 === 0) {
+            drawText('[SPACE to continue]', 14, CANVAS_H - 24, PAL.gray, 1);
+        }
+    } else if (battleState.phase === 'emoji') {
+        drawEmojiPicker();
+    } else if (battleState.phase === 'text') {
+        drawTextInput();
+    } else if (battleState.phase === 'complete') {
+        drawBox(4, CANVAS_H - 48, CANVAS_W - 8, 44);
+        drawText(playerName + ' earned the', 14, CANVAS_H - 40, PAL.black, 1);
+        drawText(battleState.badgeName + ' BADGE!', 14, CANVAS_H - 26, PAL.black, 1);
+        if (Math.floor(Date.now() / 400) % 2 === 0) {
+            ctx.fillStyle = PAL.black;
+            ctx.fillRect(CANVAS_W - 20, CANVAS_H - 12, 6, 4);
+        }
+    }
+}
+
+function drawEmojiPicker() {
+    // Bottom area for emoji grid
+    drawBox(4, 96, CANVAS_W - 8, CANVAS_H - 100);
+
+    const cols = 8;
+    const rows = 3;
+    const cellW = 28;
+    const cellH = 26;
+    const startX = 14;
+    const startY = 104;
+
+    const selIdx = battleState.emojiIdx || 0;
+
+    for (let i = 0; i < Math.min(EMOJIS.length, cols * rows); i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const ex = startX + col * cellW;
+        const ey = startY + row * cellH;
+
+        if (i === selIdx) {
+            ctx.fillStyle = PAL.yellow;
+            ctx.fillRect(ex - 2, ey - 2, cellW - 2, cellH - 2);
+        }
+
+        ctx.font = '14px serif';
+        ctx.fillText(EMOJIS[i], ex + 4, ey + 16);
+    }
+
+    drawText('ARROWS:select SPACE:pick', 14, CANVAS_H - 10, PAL.darkGray, 1);
+}
+
+function drawTextInput() {
+    drawBox(4, 96, CANVAS_W - 8, CANVAS_H - 100);
+
+    const enc = battleState.encounter;
+    drawText(enc.prompt, 14, 104, PAL.black, 1);
+
+    // Input field
+    ctx.fillStyle = PAL.white;
+    ctx.fillRect(12, 118, CANVAS_W - 28, 36);
+    ctx.strokeStyle = PAL.black;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 118, CANVAS_W - 28, 36);
+
+    // Text content
+    const displayText = textInputValue + (Math.floor(Date.now()/500)%2===0 ? '_' : '');
+    // Word wrap
+    const maxChars = 34;
+    const lines = [];
+    for (let i = 0; i < displayText.length; i += maxChars) {
+        lines.push(displayText.substring(i, i + maxChars));
+    }
+    if (lines.length === 0) lines.push('_');
+
+    for (let i = 0; i < Math.min(lines.length, 3); i++) {
+        drawText(lines[i], 16, 123 + i * 10, PAL.black, 1);
+    }
+
+    drawText('TYPE your answer, ENTER to submit', 14, CANVAS_H - 12, PAL.darkGray, 1);
+}
+
+// ============================================================
+// COMPLETION SCREEN
+// ============================================================
+function drawComplete() {
+    completeTimer++;
+
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // Particles/confetti
+    if (completeTimer % 3 === 0 && particles.length < 80) {
+        particles.push({
+            x: Math.random() * CANVAS_W,
+            y: -5,
+            vx: (Math.random() - 0.5) * 2,
+            vy: Math.random() * 2 + 1,
+            color: [PAL.red, PAL.blue, PAL.yellow, PAL.green, PAL.purple][Math.floor(Math.random()*5)],
+            size: Math.random() * 4 + 2,
+        });
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+        if (p.y > CANVAS_H + 10) particles.splice(i, 1);
+    }
+
+    // Main text
+    drawBox(20, 50, CANVAS_W - 40, 90);
+
+    ctx.fillStyle = PAL.yellow;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('VIBE CHECK', CANVAS_W/2, 66);
+    ctx.fillText('COMPLETE!', CANVAS_W/2, 82);
+
+    ctx.fillStyle = PAL.black;
+    ctx.font = '7px monospace';
+    ctx.fillText(playerName + ' checked in successfully!', CANVAS_W/2, 100);
+    ctx.fillText('All 5 badges earned.', CANVAS_W/2, 114);
+    ctx.fillText('Data saved to feed.', CANVAS_W/2, 126);
+
+    ctx.textAlign = 'start';
+
+    // Badges row
+    const badgeColors = [PAL.red, PAL.blue, PAL.purple, PAL.yellow, PAL.green];
+    const startX = CANVAS_W/2 - 40;
+    for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = badgeColors[i];
+        ctx.fillRect(startX + i * 18, 148, 12, 12);
+        ctx.fillStyle = PAL.white;
+        ctx.font = '6px monospace';
+        ctx.fillText('*', startX + i * 18 + 4, 157);
+    }
+
+    if (completeTimer > 60 && Math.floor(Date.now()/500)%2===0) {
+        drawText('SPACE to play again', 80, CANVAS_H - 16, PAL.gray, 1);
+    }
+}
+
+// ============================================================
+// TRANSITION EFFECT
+// ============================================================
+function drawTransition() {
+    if (transitionTimer <= 0) return true; // done
+
+    const progress = transitionTimer / 30;
+    // Screen wipe with black bars
+    const barH = CANVAS_H * (1 - progress) / 2;
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H/2 - barH * (CANVAS_H/2) + CANVAS_H/2 * (1-progress));
+
+    // Flash effect
+    if (transitionTimer > 25) {
+        ctx.fillStyle = `rgba(255,255,255,${(transitionTimer-25)/5})`;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    }
+
+    if (transitionTimer > 15 && transitionTimer < 20) {
+        ctx.fillStyle = PAL.black;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    }
+
+    transitionTimer--;
+    if (transitionTimer <= 0 && transitionCallback) {
+        transitionCallback();
+        transitionCallback = null;
+    }
+    return false;
+}
+
+// ============================================================
+// UI HELPER: Draw Pokemon-style box
+// ============================================================
+function drawBox(x, y, w, h) {
+    // Outer border (black)
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(x, y, w, h);
+    // Inner white
+    ctx.fillStyle = PAL.white;
+    ctx.fillRect(x+2, y+2, w-4, h-4);
+    // Inner border
+    ctx.strokeStyle = PAL.black;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x+4, y+4, w-8, h-8);
+}
+
+// ============================================================
+// MOVEMENT & COLLISION
+// ============================================================
+function isWalkable(tx, ty) {
+    if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return false;
+    const tile = MAP[ty][tx];
+    if (tile === 2 || tile === 3) return false; // tree, water
+    // Check NPC collision
+    for (const npc of NPCS) {
+        if (npc.x === tx && npc.y === ty) return false;
+    }
+    return true;
+}
+
+function getFacingTile() {
+    return {
+        x: player.x + DIR_DX[player.dir],
+        y: player.y + DIR_DY[player.dir]
+    };
+}
+
+function movePlayer() {
+    if (player.moving) {
+        // Animate toward target
+        const targetX = player.x * TILE;
+        const targetY = player.y * TILE;
+        const speed = 2;
+
+        if (Math.abs(player.px - targetX) > speed) {
+            player.px += player.px < targetX ? speed : -speed;
+        } else {
+            player.px = targetX;
+        }
+        if (Math.abs(player.py - targetY) > speed) {
+            player.py += player.py < targetY ? speed : -speed;
+        } else {
+            player.py = targetY;
+        }
+
+        if (player.px === targetX && player.py === targetY) {
+            player.moving = false;
+        }
+
+        player.animTimer++;
+        if (player.animTimer > 8) {
+            player.step = (player.step + 1) % 4;
+            player.animTimer = 0;
+        }
+        return;
+    }
+
+    let dir = -1;
+    if (keys['ArrowUp'] || keys['w'] || keys['W']) dir = 1;
+    else if (keys['ArrowDown'] || keys['s'] || keys['S']) dir = 0;
+    else if (keys['ArrowLeft'] || keys['a'] || keys['A']) dir = 2;
+    else if (keys['ArrowRight'] || keys['d'] || keys['D']) dir = 3;
+
+    if (dir >= 0) {
+        player.dir = dir;
+        const nx = player.x + DIR_DX[dir];
+        const ny = player.y + DIR_DY[dir];
+        if (isWalkable(nx, ny)) {
+            player.x = nx;
+            player.y = ny;
+            player.moving = true;
+            player.animTimer = 0;
+        }
+    }
+}
+
+// ============================================================
+// INPUT HANDLING
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    if (textInputActive) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitTextInput();
+        } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            textInputValue = textInputValue.slice(0, -1);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            textInputValue = '';
+            submitTextInput();
+        } else if (e.key.length === 1 && textInputValue.length < 140) {
+            textInputValue += e.key;
+        }
+        return;
+    }
+
+    keys[e.key] = true;
+
+    if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        handleAction();
+    }
 });
 
-function startGame(name) {
-    playerName = name;
-    document.getElementById('nameSelect').classList.add('hidden');
-    gameState = 'playing';
-    showDialogue([
-        `Welcome to Stripe Island, ${name}!`,
-        'Explore the island and visit each station to complete your vibe check.',
-        'Walk up to a station and press SPACE to interact.'
-    ]);
+document.addEventListener('keyup', (e) => {
+    keys[e.key] = false;
+});
+
+function handleAction() {
+    switch (state) {
+        case 'title':
+            state = 'nameSelect';
+            break;
+        case 'nameSelect':
+            playerName = TEAM[nameSelectIdx];
+            state = 'dialogue';
+            dialogueLines = [
+                'Welcome to VIBE ISLAND, ' + playerName + '!',
+                'Explore and visit each station.',
+                'Walk up and press SPACE to interact.',
+                'Complete all 5 to finish your check-in!'
+            ];
+            dialogueIdx = 0;
+            dialogueCallback = () => { state = 'overworld'; };
+            break;
+        case 'dialogue':
+            dialogueIdx++;
+            if (dialogueIdx >= dialogueLines.length) {
+                state = 'overworld';
+                if (dialogueCallback) {
+                    dialogueCallback();
+                    dialogueCallback = null;
+                }
+            }
+            break;
+        case 'overworld':
+            // Check if facing an NPC
+            const facing = getFacingTile();
+            for (const npc of NPCS) {
+                if (npc.x === facing.x && npc.y === facing.y) {
+                    interactWithNPC(npc);
+                    return;
+                }
+            }
+            break;
+        case 'battle':
+            handleBattleAction();
+            break;
+        case 'complete':
+            if (completeTimer > 60) {
+                location.reload();
+            }
+            break;
+    }
 }
 
-// Dialogue system
-function showDialogue(messages) {
-    dialogueQueue = [...messages];
-    gameState = 'dialogue';
-    advanceDialogue();
-}
-
-function advanceDialogue() {
-    if (dialogueQueue.length === 0) {
-        document.getElementById('dialogueBox').classList.remove('active');
-        gameState = 'playing';
+function interactWithNPC(npc) {
+    if (badges.has(npc.id)) {
+        state = 'dialogue';
+        dialogueLines = ['You already visited ' + npc.name + '!', 'Keep exploring!'];
+        dialogueIdx = 0;
+        dialogueCallback = null;
         return;
     }
-    document.getElementById('dialogueBox').classList.add('active');
-    document.getElementById('dialogueText').textContent = dialogueQueue.shift();
-}
 
-// Encounter system
-function startEncounter(zone) {
-    if (completedEncounters.has(zone.id)) {
-        showDialogue(['You\'ve already visited here! Keep exploring.']);
-        return;
-    }
-    currentEncounter = zone;
-    gameState = 'battle';
-    const overlay = document.getElementById('battleOverlay');
-    overlay.classList.add('active');
-    document.getElementById('battleTitle').textContent = zone.encounter.title;
-    document.getElementById('battleSubtitle').textContent = zone.encounter.subtitle;
-
-    const content = document.getElementById('battleContent');
-    const actions = document.getElementById('battleActions');
-
-    if (zone.encounter.type === 'emoji') {
-        content.innerHTML = '<div class="battle-emoji-grid" id="battleEmojiGrid"></div>';
-        const grid = document.getElementById('battleEmojiGrid');
-        EMOJIS.forEach(emoji => {
-            const btn = document.createElement('button');
-            btn.className = 'battle-emoji-btn';
-            btn.textContent = emoji;
-            btn.onclick = () => {
-                document.querySelectorAll('.battle-emoji-btn').forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-                checkInData.vibe = emoji;
-                document.getElementById('battleConfirmBtn').disabled = false;
+    // Show NPC dialogue then transition to battle
+    state = 'dialogue';
+    dialogueLines = npc.dialogue;
+    dialogueIdx = 0;
+    dialogueCallback = () => {
+        // Start battle transition
+        transitionTimer = 30;
+        transitionCallback = () => {
+            state = 'battle';
+            battleState = {
+                active: true,
+                npc: npc,
+                encounter: npc.encounter,
+                npcColor: npc.color,
+                badgeName: npc.badge,
+                phase: 'prompt',
+                emojiIdx: 0,
             };
-            grid.appendChild(btn);
-        });
-        actions.innerHTML = `
-            <button class="battle-btn battle-btn-skip" onclick="skipEncounter()">skip</button>
-            <button class="battle-btn battle-btn-primary" id="battleConfirmBtn" disabled onclick="confirmEncounter()">choose!</button>
-        `;
-    } else {
-        content.innerHTML = `<textarea class="battle-textarea" id="battleInput" placeholder="${zone.encounter.placeholder}" maxlength="200"></textarea>`;
-        actions.innerHTML = `
-            <button class="battle-btn battle-btn-skip" onclick="skipEncounter()">skip</button>
-            <button class="battle-btn battle-btn-primary" onclick="confirmTextEncounter()">submit</button>
-        `;
-        setTimeout(() => document.getElementById('battleInput').focus(), 100);
+        };
+    };
+}
+
+function handleBattleAction() {
+    if (!battleState.active) return;
+
+    if (battleState.phase === 'prompt') {
+        if (battleState.encounter.type === 'emoji') {
+            battleState.phase = 'emoji';
+        } else {
+            battleState.phase = 'text';
+            textInputActive = true;
+            textInputValue = '';
+        }
+    } else if (battleState.phase === 'emoji') {
+        // Select current emoji
+        const emoji = EMOJIS[battleState.emojiIdx];
+        checkInData.vibe = emoji;
+        battleState.phase = 'complete';
+    } else if (battleState.phase === 'complete') {
+        // End battle
+        badges.add(battleState.npc.id);
+        battleState.active = false;
+
+        if (badges.size === 5) {
+            transitionTimer = 30;
+            transitionCallback = () => {
+                finishGame();
+            };
+        } else {
+            transitionTimer = 30;
+            transitionCallback = () => {
+                state = 'overworld';
+            };
+        }
     }
 }
 
-function confirmEncounter() {
-    completeEncounter();
-}
-
-function confirmTextEncounter() {
-    const input = document.getElementById('battleInput');
-    if (currentEncounter.encounter.field) {
-        checkInData[currentEncounter.encounter.field] = input.value.trim();
+function submitTextInput() {
+    textInputActive = false;
+    const field = battleState.encounter.field;
+    if (field) {
+        checkInData[field] = textInputValue.trim();
     }
-    completeEncounter();
+    battleState.phase = 'complete';
 }
 
-function skipEncounter() {
-    completeEncounter();
-}
-
-function completeEncounter() {
-    completedEncounters.add(currentEncounter.id);
-    document.getElementById(currentEncounter.badge).classList.add('earned');
-    document.getElementById('battleOverlay').classList.remove('active');
-    currentEncounter = null;
-    gameState = 'playing';
-
-    if (completedEncounters.size === ZONES.length) {
-        setTimeout(() => finishGame(), 500);
+// Arrow key handling for emoji picker and name select
+function handleArrowsForUI(key) {
+    if (state === 'nameSelect') {
+        if (key === 'ArrowUp' || key === 'w' || key === 'W') {
+            nameSelectIdx = (nameSelectIdx - 1 + TEAM.length) % TEAM.length;
+        } else if (key === 'ArrowDown' || key === 's' || key === 'S') {
+            nameSelectIdx = (nameSelectIdx + 1) % TEAM.length;
+        }
+    } else if (state === 'battle' && battleState.phase === 'emoji') {
+        const cols = 8;
+        const total = Math.min(EMOJIS.length, 24);
+        let idx = battleState.emojiIdx;
+        if (key === 'ArrowRight' || key === 'd' || key === 'D') idx = (idx + 1) % total;
+        else if (key === 'ArrowLeft' || key === 'a' || key === 'A') idx = (idx - 1 + total) % total;
+        else if (key === 'ArrowDown' || key === 's' || key === 'S') idx = Math.min(idx + cols, total - 1);
+        else if (key === 'ArrowUp' || key === 'w' || key === 'W') idx = Math.max(idx - cols, 0);
+        battleState.emojiIdx = idx;
     }
 }
 
+// Override keydown for UI navigation
+document.addEventListener('keydown', (e) => {
+    if (textInputActive) return;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','W','a','A','s','S','d','D'].includes(e.key)) {
+        handleArrowsForUI(e.key);
+    }
+});
+
+// ============================================================
+// SAVE DATA
+// ============================================================
 function finishGame() {
-    // Save to localStorage (same format as classic mode)
+    state = 'complete';
+    completeTimer = 0;
+    particles = [];
+
     const entry = {
         name: playerName,
         vibe: checkInData.vibe || '🎮',
@@ -496,172 +1100,47 @@ function finishGame() {
     let feed = JSON.parse(localStorage.getItem('vibecheck-feed') || '[]');
     feed.unshift(entry);
     localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
-
-    gameState = 'complete';
-    document.getElementById('completeScreen').classList.add('active');
 }
 
-// Input
-document.addEventListener('keydown', e => {
-    keys[e.key] = true;
-    if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        if (gameState === 'dialogue') {
-            advanceDialogue();
-        } else if (gameState === 'playing') {
-            checkInteraction();
-        }
-    }
-});
-document.addEventListener('keyup', e => { keys[e.key] = false; });
-
-function checkInteraction() {
-    const px = player.x + 16;
-    const py = player.y + 16;
-    for (const zone of ZONES) {
-        const dx = Math.abs(px - (zone.x + zone.w/2));
-        const dy = Math.abs(py - (zone.y + zone.h/2));
-        if (dx < 50 && dy < 50) {
-            startEncounter(zone);
-            return;
-        }
-    }
-}
-
-// Game loop
-const SPEED = 3;
-
-function update() {
-    if (gameState !== 'playing') return;
-
-    let moved = false;
-    if (keys['ArrowUp'] || keys['w']) { player.y -= SPEED; player.dir = 'up'; moved = true; }
-    if (keys['ArrowDown'] || keys['s']) { player.y += SPEED; player.dir = 'down'; moved = true; }
-    if (keys['ArrowLeft'] || keys['a']) { player.x -= SPEED; player.dir = 'left'; moved = true; }
-    if (keys['ArrowRight'] || keys['d']) { player.x += SPEED; player.dir = 'right'; moved = true; }
-
-    // Bounds
-    player.x = Math.max(10, Math.min(canvas.width - 42, player.x));
-    player.y = Math.max(10, Math.min(canvas.height - 42, player.y));
-
-    // Animation
-    if (moved) {
-        player.frameTimer++;
-        if (player.frameTimer > 8) { player.frame = (player.frame + 1) % 4; player.frameTimer = 0; }
-    } else {
-        player.frame = 0;
-    }
-}
-
-function draw() {
-    // Background (grass)
-    ctx.fillStyle = '#1a472a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Grass pattern
-    ctx.fillStyle = '#1f5233';
-    for (let x = 0; x < canvas.width; x += 32) {
-        for (let y = 0; y < canvas.height; y += 32) {
-            if ((x + y) % 64 === 0) ctx.fillRect(x, y, 32, 32);
-        }
-    }
-
-    // Path (lighter area in center)
-    ctx.fillStyle = '#2a5c3a';
-    ctx.fillRect(200, 80, 240, 360);
-    ctx.fillRect(60, 250, 520, 80);
-
-    // Trees
-    TREES.forEach(t => {
-        ctx.font = '28px serif';
-        ctx.fillText('🌲', t.x, t.y + 28);
-    });
-
-    // Zones (NPC stations)
-    ZONES.forEach(zone => {
-        const completed = completedEncounters.has(zone.id);
-        // Glow if not completed
-        if (!completed) {
-            ctx.shadowColor = '#667eea';
-            ctx.shadowBlur = 15;
-        }
-        ctx.font = '36px serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(zone.emoji, zone.x + zone.w/2, zone.y + zone.h/2 + 12);
-        ctx.shadowBlur = 0;
-
-        // Label
-        ctx.font = '10px -apple-system, sans-serif';
-        ctx.fillStyle = completed ? '#555' : '#aaa';
-        ctx.fillText(zone.label, zone.x + zone.w/2, zone.y + zone.h + 12);
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'start';
-
-        // Checkmark if done
-        if (completed) {
-            ctx.font = '14px serif';
-            ctx.fillText('✓', zone.x + zone.w - 5, zone.y + 15);
-        }
-    });
-
-    // Player
-    drawPlayer();
-
-    // Interaction hint
-    if (gameState === 'playing') {
-        const px = player.x + 16;
-        const py = player.y + 16;
-        for (const zone of ZONES) {
-            const dx = Math.abs(px - (zone.x + zone.w/2));
-            const dy = Math.abs(py - (zone.y + zone.h/2));
-            if (dx < 50 && dy < 50 && !completedEncounters.has(zone.id)) {
-                ctx.font = '11px -apple-system, sans-serif';
-                ctx.fillStyle = '#fff';
-                ctx.textAlign = 'center';
-                ctx.fillText('[ SPACE ]', zone.x + zone.w/2, zone.y - 8);
-                ctx.textAlign = 'start';
-                break;
-            }
-        }
-    }
-}
-
-function drawPlayer() {
-    const bobOffset = player.frame % 2 === 0 ? 0 : -2;
-
-    // Body
-    ctx.fillStyle = '#667eea';
-    ctx.beginPath();
-    ctx.arc(player.x + 16, player.y + 12 + bobOffset, 12, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Face direction indicator
-    ctx.fillStyle = '#fff';
-    let eyeX = player.x + 16;
-    let eyeY = player.y + 10 + bobOffset;
-    if (player.dir === 'left') eyeX -= 4;
-    if (player.dir === 'right') eyeX += 4;
-    if (player.dir === 'up') eyeY -= 3;
-    if (player.dir === 'down') eyeY += 3;
-    ctx.beginPath();
-    ctx.arc(eyeX - 3, eyeY, 2, 0, Math.PI * 2);
-    ctx.arc(eyeX + 3, eyeY, 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Name tag
-    ctx.font = '10px -apple-system, sans-serif';
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.fillText(playerName || '', player.x + 16, player.y + 32);
-    ctx.textAlign = 'start';
-}
-
+// ============================================================
+// MAIN GAME LOOP
+// ============================================================
 function gameLoop() {
-    update();
-    draw();
+    // Clear
+    ctx.fillStyle = PAL.black;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    switch (state) {
+        case 'title':
+            drawTitle();
+            break;
+        case 'nameSelect':
+            drawNameSelect();
+            break;
+        case 'overworld':
+            movePlayer();
+            drawOverworld();
+            break;
+        case 'dialogue':
+            drawDialogueBox();
+            break;
+        case 'battle':
+            drawBattle();
+            break;
+        case 'complete':
+            drawComplete();
+            break;
+    }
+
+    // Transition overlay
+    if (transitionTimer > 0) {
+        drawTransition();
+    }
+
     requestAnimationFrame(gameLoop);
 }
 
+// Start the loop
 gameLoop();
 </script>
 </body>
