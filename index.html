@@ -772,10 +772,140 @@
             padding-bottom: 0.4rem;
             border-bottom: 1px solid #222;
         }
+
+        .instructions-panel {
+            width: 200px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .instructions-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .instructions-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #667eea;
+            margin-bottom: 0.75rem;
+        }
+
+        .instructions-card ol {
+            list-style: none;
+            counter-reset: steps;
+            padding: 0;
+        }
+
+        .instructions-card ol li {
+            counter-increment: steps;
+            font-size: 0.8rem;
+            color: #999;
+            padding: 0.3rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .instructions-card ol li::before {
+            content: counter(steps);
+            position: absolute;
+            left: 0;
+            width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 50%;
+            background: #2a2a4e;
+            color: #667eea;
+            font-size: 0.65rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            top: 0.35rem;
+        }
+
+        .instructions-note {
+            font-size: 0.75rem;
+            color: #555;
+            margin-top: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .instructions-divider {
+            height: 1px;
+            background: #333;
+            margin: 0.75rem 0;
+        }
+
+        .instructions-tip {
+            font-size: 0.75rem;
+            color: #764ba2;
+            font-style: italic;
+        }
+
+        .feedback-link {
+            display: block;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #667eea;
+            text-decoration: none;
+            padding: 0.6rem 1rem;
+            border: 1px solid #333;
+            border-radius: 10px;
+            background: #1a1a2e;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+        }
+
+        .feedback-link:hover {
+            border-color: #667eea;
+            background: #2a2a4e;
+        }
+
+        .made-with {
+            font-size: 0.7rem;
+            color: #444;
+            text-align: center;
+        }
+
+        @media (max-width: 1200px) {
+            .instructions-panel {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="page-layout">
+    <!-- Floating particles background -->
+    <canvas id="particleCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.4;"></canvas>
+
+    <div class="page-layout" style="position:relative;z-index:1;">
+
+    <!-- Instructions panel (left gutter on wide screens) -->
+    <aside class="instructions-panel">
+        <div class="instructions-card">
+            <h3>how it works</h3>
+            <ol>
+                <li>Pick your name</li>
+                <li>Choose a vibe (emoji, word, or lucky spin)</li>
+                <li>Answer the prompts (keep it real)</li>
+                <li>Hit "check in"</li>
+            </ol>
+            <p class="instructions-note">Your manager uses the standup sidebar to run through everyone. Discussion items get collected automatically.</p>
+            <div class="instructions-divider"></div>
+            <p class="instructions-tip">Pro tip: hit 🤷 Lucky for a random vibe when you can't pick one.</p>
+        </div>
+        <a href="https://stripe.enterprise.slack.com/messages/benrj" class="feedback-link" target="_blank">
+            💬 got feedback? slack ben
+        </a>
+        <p class="made-with">made with vibes by APAC PMM</p>
+    </aside>
+
     <div class="container">
         <h1>vibe check</h1>
         <p class="subtitle">how are you showing up today?</p>
@@ -1407,6 +1537,60 @@
         };
 
         renderFeed();
+
+        // Floating particles
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const particleEmojis = ['✨', '🌟', '💫', '⭐', '🔮', '🪩'];
+
+        for (let i = 0; i < 20; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                emoji: particleEmojis[Math.floor(Math.random() * particleEmojis.length)],
+                size: 10 + Math.random() * 14,
+                opacity: 0.15 + Math.random() * 0.25,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.01
+            });
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.rotation += p.rotationSpeed;
+
+                if (p.x < -50) p.x = canvas.width + 50;
+                if (p.x > canvas.width + 50) p.x = -50;
+                if (p.y < -50) p.y = canvas.height + 50;
+                if (p.y > canvas.height + 50) p.y = -50;
+
+                ctx.save();
+                ctx.globalAlpha = p.opacity;
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation);
+                ctx.font = `${p.size}px serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.emoji, 0, 0);
+                ctx.restore();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
     </script>
 </body>
 </html>
