@@ -223,265 +223,386 @@ function drawTextCentered(text, x, y, color = PAL.black, scale = 1) {
 }
 
 // ============================================================
-// CHARACTER SPRITE DATA (16x24 pixel art, stored as color arrays)
-// Each character has: front1, front2 (idle frames), back, left, right
-// Colors: 0=transparent, 1=skin, 2=hair, 3=shirt, 4=pants, 5=shoes, 6=accent(hat/glasses)
+// CHARACTER SPRITE DATA (16x24 pixel art)
+// Proper GBC-style sprites with round heads, visible features
 // ============================================================
 const CHAR_PALETTES = {
-    Ben:      { skin:'#f0d8a0', hair:'#5c3a1e', shirt:'#3060b8', pants:'#1e3050', shoes:'#222', accent:'#c83038' }, // red cap
-    Karina:   { skin:'#f0d8a0', hair:'#e8c840', shirt:'#2d8b4e', pants:'#1e4d2b', shoes:'#5c3a1e', accent:'#88d058' }, // blonde, green
-    Terrence: { skin:'#c89060', hair:'#181818', shirt:'#483878', pants:'#282040', shoes:'#222', accent:'#7848a0' }, // purple jacket
-    Jun:      { skin:'#f0d0a0', hair:'#101010', shirt:'#f0f0f0', pants:'#384058', shoes:'#333', accent:'#88bbee' }, // glasses, white shirt
-    Aditya:   { skin:'#c8a060', hair:'#181010', shirt:'#e89020', pants:'#483820', shoes:'#222', accent:'#f8d030' }, // orange shirt
+    Ben:      { skin:'#f0d8a0', hair:'#5c3a1e', shirt:'#3060b8', pants:'#1e3050', shoes:'#222', accent:'#c83038', accent2:'#e04048' }, // red cap
+    Karina:   { skin:'#f0d8a0', hair:'#e8c840', shirt:'#2d8b4e', pants:'#1e4d2b', shoes:'#5c3a1e', accent:'#88d058', accent2:'#f0d848' }, // blonde, green
+    Terrence: { skin:'#c89060', hair:'#181818', shirt:'#282848', pants:'#1a1a30', shoes:'#222', accent:'#7848a0', accent2:'#9060c0' }, // dark skin, navy
+    Jun:      { skin:'#f0d0a0', hair:'#101010', shirt:'#f0f0f0', pants:'#384058', shoes:'#333', accent:'#88bbee', accent2:'#6699cc' }, // glasses, white shirt
+    Aditya:   { skin:'#c8a060', hair:'#181010', shirt:'#e89020', pants:'#483820', shoes:'#222', accent:'#f8d030', accent2:'#f0a010' }, // orange shirt
 };
 
-// Sprite pixel maps (16 wide x 24 tall) — simplified representations
-// Each sprite is defined as drawing instructions for efficiency
+// 16x24 pixel sprite definitions as 2D arrays
+// null = transparent, string = color key from palette
+// Keys: S=skin, H=hair, T=shirt, P=pants, O=shoes, A=accent, B=accent2, E=eyes, W=white
+const _ = null;
+const S = 'S', H = 'H', T = 'T', P = 'P', O = 'O', A = 'A', B = 'B', E = 'E', W = 'W';
+
+// Front-facing sprite (shared base — character-specific features applied in code)
+const SPRITE_FRONT = [
+    [_,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_], // 0: top of hair
+    [_,_,_,_,H,H,H,H,H,H,H,H,_,_,_,_], // 1: hair
+    [_,_,_,H,H,S,S,S,S,S,S,H,H,_,_,_], // 2: hair+forehead
+    [_,_,_,H,S,S,S,S,S,S,S,S,H,_,_,_], // 3: face
+    [_,_,_,H,S,E,S,S,S,S,E,S,H,_,_,_], // 4: eyes
+    [_,_,_,H,S,S,S,S,S,S,S,S,H,_,_,_], // 5: nose
+    [_,_,_,_,S,S,S,W,W,S,S,S,_,_,_,_], // 6: mouth
+    [_,_,_,_,S,S,S,S,S,S,S,S,_,_,_,_], // 7: chin
+    [_,_,_,_,_,T,T,T,T,T,T,_,_,_,_,_], // 8: neck/collar
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_], // 9: shoulders+arms
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_], // 10: torso
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_], // 11: torso
+    [_,_,_,_,T,T,T,T,T,T,T,T,_,_,_,_], // 12: torso lower
+    [_,_,_,_,T,T,T,T,T,T,T,T,_,_,_,_], // 13: waist
+    [_,_,_,_,_,P,P,P,P,P,P,_,_,_,_,_], // 14: belt area
+    [_,_,_,_,_,P,P,P,P,P,P,_,_,_,_,_], // 15: hips
+    [_,_,_,_,_,P,P,_,_,P,P,_,_,_,_,_], // 16: upper legs
+    [_,_,_,_,_,P,P,_,_,P,P,_,_,_,_,_], // 17: lower legs
+    [_,_,_,_,_,P,P,_,_,P,P,_,_,_,_,_], // 18: ankles
+    [_,_,_,_,_,O,O,_,_,O,O,_,_,_,_,_], // 19: shoes
+];
+
+// Walk frame 1 (left foot forward)
+const SPRITE_FRONT_WALK1 = [
+    [_,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_],
+    [_,_,_,_,H,H,H,H,H,H,H,H,_,_,_,_],
+    [_,_,_,H,H,S,S,S,S,S,S,H,H,_,_,_],
+    [_,_,_,H,S,S,S,S,S,S,S,S,H,_,_,_],
+    [_,_,_,H,S,E,S,S,S,S,E,S,H,_,_,_],
+    [_,_,_,H,S,S,S,S,S,S,S,S,H,_,_,_],
+    [_,_,_,_,S,S,S,W,W,S,S,S,_,_,_,_],
+    [_,_,_,_,S,S,S,S,S,S,S,S,_,_,_,_],
+    [_,_,_,_,_,T,T,T,T,T,T,_,_,_,_,_],
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_],
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_],
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_],
+    [_,_,_,_,T,T,T,T,T,T,T,T,_,_,_,_],
+    [_,_,_,_,T,T,T,T,T,T,T,T,_,_,_,_],
+    [_,_,_,_,_,P,P,P,P,P,P,_,_,_,_,_],
+    [_,_,_,_,_,P,P,P,P,P,P,_,_,_,_,_],
+    [_,_,_,_,P,P,_,_,_,_,P,P,_,_,_,_],
+    [_,_,_,P,P,_,_,_,_,_,_,P,P,_,_,_],
+    [_,_,_,P,P,_,_,_,_,_,_,P,P,_,_,_],
+    [_,_,_,O,O,_,_,_,_,_,_,O,O,_,_,_],
+];
+
+// Back-facing sprite
+const SPRITE_BACK = [
+    [_,_,_,_,_,H,H,H,H,H,H,_,_,_,_,_],
+    [_,_,_,_,H,H,H,H,H,H,H,H,_,_,_,_],
+    [_,_,_,H,H,H,H,H,H,H,H,H,H,_,_,_],
+    [_,_,_,H,H,H,H,H,H,H,H,H,H,_,_,_],
+    [_,_,_,H,H,H,H,H,H,H,H,H,H,_,_,_],
+    [_,_,_,H,H,H,H,H,H,H,H,H,H,_,_,_],
+    [_,_,_,_,H,H,H,H,H,H,H,H,_,_,_,_],
+    [_,_,_,_,H,H,H,H,H,H,H,H,_,_,_,_],
+    [_,_,_,_,_,T,T,T,T,T,T,_,_,_,_,_],
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_],
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_],
+    [_,_,_,S,T,T,T,T,T,T,T,T,S,_,_,_],
+    [_,_,_,_,T,T,T,T,T,T,T,T,_,_,_,_],
+    [_,_,_,_,T,T,T,T,T,T,T,T,_,_,_,_],
+    [_,_,_,_,_,P,P,P,P,P,P,_,_,_,_,_],
+    [_,_,_,_,_,P,P,P,P,P,P,_,_,_,_,_],
+    [_,_,_,_,_,P,P,_,_,P,P,_,_,_,_,_],
+    [_,_,_,_,_,P,P,_,_,P,P,_,_,_,_,_],
+    [_,_,_,_,_,P,P,_,_,P,P,_,_,_,_,_],
+    [_,_,_,_,_,O,O,_,_,O,O,_,_,_,_,_],
+];
+
+// Left-facing sprite
+const SPRITE_LEFT = [
+    [_,_,_,_,_,_,H,H,H,H,H,_,_,_,_,_],
+    [_,_,_,_,_,H,H,H,H,H,H,H,_,_,_,_],
+    [_,_,_,_,H,H,S,S,S,S,H,H,_,_,_,_],
+    [_,_,_,_,H,S,S,S,S,S,S,H,_,_,_,_],
+    [_,_,_,_,H,E,S,S,S,S,S,H,_,_,_,_],
+    [_,_,_,_,H,S,S,S,S,S,S,H,_,_,_,_],
+    [_,_,_,_,_,S,S,S,S,S,_,_,_,_,_,_],
+    [_,_,_,_,_,S,S,S,S,S,_,_,_,_,_,_],
+    [_,_,_,_,_,_,T,T,T,T,_,_,_,_,_,_],
+    [_,_,_,_,S,T,T,T,T,T,T,_,_,_,_,_],
+    [_,_,_,_,S,T,T,T,T,T,T,_,_,_,_,_],
+    [_,_,_,_,S,T,T,T,T,T,T,_,_,_,_,_],
+    [_,_,_,_,_,T,T,T,T,T,_,_,_,_,_,_],
+    [_,_,_,_,_,T,T,T,T,T,_,_,_,_,_,_],
+    [_,_,_,_,_,_,P,P,P,P,_,_,_,_,_,_],
+    [_,_,_,_,_,_,P,P,P,P,_,_,_,_,_,_],
+    [_,_,_,_,_,P,P,_,P,P,_,_,_,_,_,_],
+    [_,_,_,_,_,P,P,_,P,P,_,_,_,_,_,_],
+    [_,_,_,_,_,P,P,_,P,P,_,_,_,_,_,_],
+    [_,_,_,_,_,O,O,_,O,O,_,_,_,_,_,_],
+];
+
+function resolveColor(key, pal) {
+    switch(key) {
+        case 'S': return pal.skin;
+        case 'H': return pal.hair;
+        case 'T': return pal.shirt;
+        case 'P': return pal.pants;
+        case 'O': return pal.shoes;
+        case 'A': return pal.accent;
+        case 'B': return pal.accent2;
+        case 'E': return '#081820';
+        case 'W': return pal.skin; // mouth same as skin base
+        default: return null;
+    }
+}
+
 function drawCharSprite(x, y, charName, dir, frame, scale) {
     scale = scale || 1.5;
     const pal = CHAR_PALETTES[charName];
     if (!pal) return;
 
-    const s = scale; // shorthand
-    const bob = (frame % 2 === 0) ? 0 : -1 * s; // idle bob
+    const s = scale;
+    const isWalking = frame % 2 !== 0;
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(x + 3*s, y + 21*s, 10*s, 3*s);
+    // Shadow (ellipse-like)
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(x + 8*s, y + 20*s, 5*s, 2*s, 0, 0, Math.PI*2);
+    ctx.fill();
 
-    if (dir === 1) {
-        // BACK VIEW
-        // Hair (covers head from back)
-        ctx.fillStyle = pal.hair;
-        ctx.fillRect(x+4*s, y+bob+0*s, 8*s, 8*s);
-        // Hat for Ben
+    // Select sprite data based on direction
+    let spriteData;
+    let flipH = false;
+    if (dir === 0) { // front
+        spriteData = isWalking ? SPRITE_FRONT_WALK1 : SPRITE_FRONT;
+    } else if (dir === 1) { // back
+        spriteData = SPRITE_BACK;
+    } else if (dir === 2) { // left
+        spriteData = SPRITE_LEFT;
+    } else { // right — mirror of left
+        spriteData = SPRITE_LEFT;
+        flipH = true;
+    }
+
+    // Walking bob
+    const bob = isWalking ? -1*s : 0;
+
+    // Draw pixel by pixel
+    for (let row = 0; row < spriteData.length; row++) {
+        for (let col = 0; col < spriteData[row].length; col++) {
+            const key = spriteData[row][col];
+            if (key === null) continue;
+            const color = resolveColor(key, pal);
+            if (!color) continue;
+            ctx.fillStyle = color;
+            const px = flipH ? (15 - col) : col;
+            ctx.fillRect(x + px*s, y + bob + row*s, s + 0.5, s + 0.5);
+        }
+    }
+
+    // Character-specific overlays drawn on top
+    if (dir === 0 || dir === 2 || dir === 3) {
         if (charName === 'Ben') {
+            // Red cap on top of head
             ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+3*s, y+bob+0*s, 10*s, 3*s);
-        }
-        // Body/shirt
-        ctx.fillStyle = pal.shirt;
-        ctx.fillRect(x+4*s, y+bob+8*s, 8*s, 8*s);
-        // Arms
-        ctx.fillRect(x+2*s, y+bob+9*s, 2*s, 6*s);
-        ctx.fillRect(x+12*s, y+bob+9*s, 2*s, 6*s);
-        // Pants
-        ctx.fillStyle = pal.pants;
-        ctx.fillRect(x+4*s, y+bob+16*s, 8*s, 4*s);
-        // Legs/shoes
-        ctx.fillStyle = pal.shoes;
-        if (frame % 2 === 0) {
-            ctx.fillRect(x+4*s, y+bob+20*s, 3*s, 3*s);
-            ctx.fillRect(x+9*s, y+bob+21*s, 3*s, 2*s);
-        } else {
-            ctx.fillRect(x+4*s, y+bob+21*s, 3*s, 2*s);
-            ctx.fillRect(x+9*s, y+bob+20*s, 3*s, 3*s);
-        }
-    } else if (dir === 2) {
-        // LEFT VIEW
-        // Head
-        ctx.fillStyle = pal.skin;
-        ctx.fillRect(x+5*s, y+bob+1*s, 6*s, 7*s);
-        // Hair
-        ctx.fillStyle = pal.hair;
-        ctx.fillRect(x+4*s, y+bob+0*s, 8*s, 3*s);
-        ctx.fillRect(x+9*s, y+bob+1*s, 3*s, 5*s);
-        if (charName === 'Ben') {
-            ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+3*s, y+bob+0*s, 9*s, 2*s);
-            ctx.fillRect(x+2*s, y+bob+0*s, 3*s, 2*s);
-        }
-        if (charName === 'Jun') {
-            ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+4*s, y+bob+4*s, 3*s, 1*s);
-        }
-        // Eye
-        ctx.fillStyle = '#081820';
-        ctx.fillRect(x+5*s, y+bob+4*s, 2*s, 2*s);
-        // Body
-        ctx.fillStyle = pal.shirt;
-        ctx.fillRect(x+5*s, y+bob+8*s, 7*s, 8*s);
-        // Arm
-        ctx.fillStyle = pal.skin;
-        ctx.fillRect(x+4*s, y+bob+9*s, 2*s, 5*s);
-        // Pants
-        ctx.fillStyle = pal.pants;
-        ctx.fillRect(x+5*s, y+bob+16*s, 7*s, 4*s);
-        // Shoes
-        ctx.fillStyle = pal.shoes;
-        if (frame % 2 === 0) {
-            ctx.fillRect(x+5*s, y+bob+20*s, 3*s, 3*s);
-            ctx.fillRect(x+9*s, y+bob+21*s, 3*s, 2*s);
-        } else {
-            ctx.fillRect(x+5*s, y+bob+21*s, 3*s, 2*s);
-            ctx.fillRect(x+9*s, y+bob+20*s, 3*s, 3*s);
-        }
-    } else if (dir === 3) {
-        // RIGHT VIEW
-        ctx.fillStyle = pal.skin;
-        ctx.fillRect(x+5*s, y+bob+1*s, 6*s, 7*s);
-        // Hair
-        ctx.fillStyle = pal.hair;
-        ctx.fillRect(x+4*s, y+bob+0*s, 8*s, 3*s);
-        ctx.fillRect(x+4*s, y+bob+1*s, 3*s, 5*s);
-        if (charName === 'Ben') {
-            ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+4*s, y+bob+0*s, 9*s, 2*s);
-            ctx.fillRect(x+11*s, y+bob+0*s, 3*s, 2*s);
-        }
-        if (charName === 'Jun') {
-            ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+9*s, y+bob+4*s, 3*s, 1*s);
-        }
-        // Eye
-        ctx.fillStyle = '#081820';
-        ctx.fillRect(x+9*s, y+bob+4*s, 2*s, 2*s);
-        // Body
-        ctx.fillStyle = pal.shirt;
-        ctx.fillRect(x+4*s, y+bob+8*s, 7*s, 8*s);
-        // Arm
-        ctx.fillStyle = pal.skin;
-        ctx.fillRect(x+10*s, y+bob+9*s, 2*s, 5*s);
-        // Pants
-        ctx.fillStyle = pal.pants;
-        ctx.fillRect(x+4*s, y+bob+16*s, 7*s, 4*s);
-        // Shoes
-        ctx.fillStyle = pal.shoes;
-        if (frame % 2 === 0) {
-            ctx.fillRect(x+4*s, y+bob+20*s, 3*s, 3*s);
-            ctx.fillRect(x+8*s, y+bob+21*s, 3*s, 2*s);
-        } else {
-            ctx.fillRect(x+4*s, y+bob+21*s, 3*s, 2*s);
-            ctx.fillRect(x+8*s, y+bob+20*s, 3*s, 3*s);
-        }
-    } else {
-        // FRONT VIEW (dir === 0)
-        // Head
-        ctx.fillStyle = pal.skin;
-        ctx.fillRect(x+4*s, y+bob+1*s, 8*s, 7*s);
-        // Hair
-        ctx.fillStyle = pal.hair;
-        ctx.fillRect(x+3*s, y+bob+0*s, 10*s, 3*s);
-        ctx.fillRect(x+3*s, y+bob+1*s, 2*s, 4*s);
-        ctx.fillRect(x+11*s, y+bob+1*s, 2*s, 4*s);
-        // Character-specific features
-        if (charName === 'Ben') {
-            ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+3*s, y+bob+0*s, 10*s, 2*s);
+            const capRow = 0;
+            if (dir === 0) {
+                for (let c = 4; c <= 11; c++) {
+                    const px = flipH ? (15-c) : c;
+                    ctx.fillRect(x+px*s, y+bob+capRow*s, s+0.5, s*2+0.5);
+                }
+                // Cap brim
+                ctx.fillStyle = pal.accent2;
+                for (let c = 3; c <= 12; c++) {
+                    const px = flipH ? (15-c) : c;
+                    ctx.fillRect(x+px*s, y+bob+2*s, s+0.5, s+0.5);
+                }
+            } else {
+                // Side view cap
+                const startC = flipH ? 5 : 5;
+                const endC = flipH ? 12 : 11;
+                for (let c = startC; c <= endC; c++) {
+                    const px = flipH ? (15-c) : c;
+                    ctx.fillRect(x+px*s, y+bob+0, s+0.5, s*2+0.5);
+                }
+                ctx.fillStyle = pal.accent2;
+                const brimC = flipH ? 4 : 4;
+                const brimE = flipH ? 7 : 7;
+                for (let c = brimC; c <= brimE; c++) {
+                    const px = flipH ? (15-c) : c;
+                    ctx.fillRect(x+px*s, y+bob+2*s, s+0.5, s+0.5);
+                }
+            }
         }
         if (charName === 'Karina') {
-            // Longer blonde hair sides
+            // Long blonde hair flowing down sides
             ctx.fillStyle = pal.hair;
-            ctx.fillRect(x+2*s, y+bob+2*s, 2*s, 7*s);
-            ctx.fillRect(x+12*s, y+bob+2*s, 2*s, 7*s);
+            if (dir === 0) {
+                for (let r = 3; r <= 11; r++) {
+                    ctx.fillRect(x+3*s, y+bob+r*s, s+0.5, s+0.5);
+                    ctx.fillRect(x+12*s, y+bob+r*s, s+0.5, s+0.5);
+                }
+                // Hair tips lighter
+                ctx.fillStyle = pal.accent2;
+                ctx.fillRect(x+3*s, y+bob+10*s, s+0.5, s*2+0.5);
+                ctx.fillRect(x+12*s, y+bob+10*s, s+0.5, s*2+0.5);
+            }
         }
-        if (charName === 'Jun') {
+        if (charName === 'Jun' && (dir === 0)) {
             // Glasses
             ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+4*s, y+bob+4*s, 4*s, 2*s);
-            ctx.fillRect(x+9*s, y+bob+4*s, 4*s, 2*s);
-            ctx.fillRect(x+8*s, y+bob+4*s, 1*s, 1*s);
+            // Left lens frame
+            ctx.fillRect(x+4*s, y+bob+3.5*s, s*3+0.5, s+0.5);
+            ctx.fillRect(x+4*s, y+bob+5*s, s*3+0.5, s*0.5+0.5);
+            ctx.fillRect(x+4*s, y+bob+3.5*s, s*0.5, s*2);
+            ctx.fillRect(x+6.5*s, y+bob+3.5*s, s*0.5, s*2);
+            // Right lens frame
+            ctx.fillRect(x+8.5*s, y+bob+3.5*s, s*3+0.5, s+0.5);
+            ctx.fillRect(x+8.5*s, y+bob+5*s, s*3+0.5, s*0.5+0.5);
+            ctx.fillRect(x+8.5*s, y+bob+3.5*s, s*0.5, s*2);
+            ctx.fillRect(x+11*s, y+bob+3.5*s, s*0.5, s*2);
+            // Bridge
+            ctx.fillRect(x+7*s, y+bob+4*s, s*1.5, s*0.5);
         }
-        // Eyes
-        ctx.fillStyle = '#081820';
-        ctx.fillRect(x+5*s, y+bob+4*s, 2*s, 2*s);
-        ctx.fillRect(x+9*s, y+bob+4*s, 2*s, 2*s);
-        // Body/shirt
-        ctx.fillStyle = pal.shirt;
-        ctx.fillRect(x+4*s, y+bob+8*s, 8*s, 8*s);
-        // Arms
-        ctx.fillRect(x+2*s, y+bob+9*s, 2*s, 6*s);
-        ctx.fillRect(x+12*s, y+bob+9*s, 2*s, 6*s);
-        // Accent detail on shirt
-        if (charName === 'Terrence') {
+        if (charName === 'Terrence' && dir === 0) {
+            // Purple accent stripe on navy shirt
             ctx.fillStyle = pal.accent;
-            ctx.fillRect(x+6*s, y+bob+9*s, 4*s, 2*s);
+            ctx.fillRect(x+6*s, y+bob+9*s, s*4, s+0.5);
+            ctx.fillRect(x+7*s, y+bob+10*s, s*2, s+0.5);
         }
-        if (charName === 'Aditya') {
+        if (charName === 'Aditya' && dir === 0) {
+            // White collar detail on orange shirt
             ctx.fillStyle = '#fff';
-            ctx.fillRect(x+6*s, y+bob+10*s, 4*s, 1*s);
+            ctx.fillRect(x+6*s, y+bob+8*s, s*4, s+0.5);
         }
-        // Pants
-        ctx.fillStyle = pal.pants;
-        ctx.fillRect(x+4*s, y+bob+16*s, 8*s, 4*s);
-        // Legs/shoes (animated)
-        ctx.fillStyle = pal.shoes;
-        if (frame % 2 === 0) {
-            ctx.fillRect(x+4*s, y+bob+20*s, 3*s, 3*s);
-            ctx.fillRect(x+9*s, y+bob+21*s, 3*s, 2*s);
-        } else {
-            ctx.fillRect(x+4*s, y+bob+21*s, 3*s, 2*s);
-            ctx.fillRect(x+9*s, y+bob+20*s, 3*s, 3*s);
-        }
+    }
+
+    // Eye shine (white dot in eyes for front view)
+    if (dir === 0) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x+5.5*s, y+bob+4*s, s*0.5, s*0.5);
+        ctx.fillRect(x+10.5*s, y+bob+4*s, s*0.5, s*0.5);
     }
 }
 
 let charSelectAnimTimer = 0;
 
 // ============================================================
-// SPRITE DRAWING (all pixel art via canvas)
+// TILE RENDERING — GBC Pokemon-style pixel art
 // ============================================================
+let waterFrame = 0;
+let waterTick = 0;
+
 function drawTile(tx, ty, type) {
     const x = tx * TILE;
     const y = ty * TILE;
-    const T = TILE; // shorthand
-    const s = T / 16; // scale factor relative to original 16px tiles
+    const T = TILE;
+    const s = T / 16;
 
     switch(type) {
-        case 0: // Grass
+        case 0: // Grass — solid green, subtle sparse tufts
             ctx.fillStyle = PAL.green;
             ctx.fillRect(x, y, T, T);
-            // Grass detail
-            ctx.fillStyle = PAL.lightGreen;
-            if ((tx + ty) % 3 === 0) {
-                ctx.fillRect(x+3*s, y+6*s, 3*s, 4*s);
-                ctx.fillRect(x+9*s, y+10*s, 3*s, 4*s);
-            }
-            if ((tx + ty) % 5 === 0) {
-                ctx.fillRect(x+7*s, y+3*s, 3*s, 4*s);
+            // Very sparse detail — only some tiles get tufts
+            const grassSeed = (tx * 7 + ty * 13) % 17;
+            if (grassSeed === 0) {
+                // Small darker tuft (2 pixels)
+                ctx.fillStyle = PAL.darkGreen;
+                ctx.fillRect(x+4*s, y+10*s, s*2, s*2);
+            } else if (grassSeed === 3) {
+                ctx.fillStyle = PAL.darkGreen;
+                ctx.fillRect(x+11*s, y+5*s, s, s*3);
+                ctx.fillRect(x+10*s, y+6*s, s, s*2);
+            } else if (grassSeed === 7) {
+                // Tiny light highlight
+                ctx.fillStyle = PAL.lightGreen;
+                ctx.fillRect(x+8*s, y+12*s, s*2, s);
             }
             break;
-        case 1: // Path
+
+        case 1: // Path — clean solid tan with subtle edge borders
             ctx.fillStyle = PAL.tan;
             ctx.fillRect(x, y, T, T);
-            ctx.fillStyle = PAL.lightTan;
-            ctx.fillRect(x+2*s, y+2*s, 5*s, 5*s);
-            ctx.fillRect(x+10*s, y+8*s, 5*s, 5*s);
+            // Draw darker border on edges where path meets non-path
+            ctx.fillStyle = PAL.brown;
+            // Check adjacent tiles for border
+            if (ty > 0 && MAP[ty-1] && MAP[ty-1][tx] !== 1) {
+                ctx.fillRect(x, y, T, s); // top border
+            }
+            if (ty < ROWS-1 && MAP[ty+1] && MAP[ty+1][tx] !== 1) {
+                ctx.fillRect(x, y+T-s, T, s); // bottom border
+            }
+            if (tx > 0 && MAP[ty][tx-1] !== 1) {
+                ctx.fillRect(x, y, s, T); // left border
+            }
+            if (tx < COLS-1 && MAP[ty][tx+1] !== 1) {
+                ctx.fillRect(x+T-s, y, s, T); // right border
+            }
             break;
-        case 2: // Tree
+
+        case 2: // Tree — trunk + layered round canopy with shading
+            // Grass base
             ctx.fillStyle = PAL.green;
             ctx.fillRect(x, y, T, T);
-            // Trunk
+            // Brown trunk
             ctx.fillStyle = PAL.darkBrown;
-            ctx.fillRect(x+6*s, y+10*s, 4*s, 6*s);
-            // Canopy
+            ctx.fillRect(x+6*s, y+12*s, 4*s, 5*s);
+            // Trunk highlight
+            ctx.fillStyle = PAL.brown;
+            ctx.fillRect(x+7*s, y+12*s, 2*s, 4*s);
+            // Canopy — dark outer layer (round shape)
+            ctx.fillStyle = '#1a5c2a';
+            ctx.fillRect(x+2*s, y+4*s, 12*s, 8*s);
+            ctx.fillRect(x+3*s, y+2*s, 10*s, 2*s);
+            ctx.fillRect(x+3*s, y+12*s, 10*s, 1*s);
+            ctx.fillRect(x+4*s, y+1*s, 8*s, 1*s);
+            // Canopy — medium green inner
             ctx.fillStyle = PAL.darkGreen;
-            ctx.fillRect(x+2*s, y+2*s, 12*s, 10*s);
-            ctx.fillRect(x+4*s, y+0, 8*s, 4*s);
-            // Highlight
+            ctx.fillRect(x+3*s, y+4*s, 10*s, 7*s);
+            ctx.fillRect(x+4*s, y+3*s, 8*s, 1*s);
+            // Canopy — light highlight spot (top-left)
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x+4*s, y+4*s, 4*s, 3*s);
+            ctx.fillRect(x+5*s, y+3*s, 3*s, 1*s);
+            // Bright highlight dot
             ctx.fillStyle = PAL.lightGreen;
-            ctx.fillRect(x+4*s, y+3*s, 4*s, 3*s);
+            ctx.fillRect(x+5*s, y+5*s, 2*s, 2*s);
             break;
-        case 3: // Water
+
+        case 3: // Water — animated horizontal wave pattern
+            // Base medium blue
             ctx.fillStyle = PAL.water;
             ctx.fillRect(x, y, T, T);
-            // Ripples
+            // Animated wave lines (alternate every 30 ticks)
             ctx.fillStyle = PAL.waterLight;
-            const waveOff = Math.floor(Date.now() / 500) % 4;
-            ctx.fillRect(x + ((waveOff + tx*3) % Math.floor(12*s)), y+4*s, 8*s, 3*s);
-            ctx.fillRect(x + ((waveOff + tx*7 + 6) % Math.floor(12*s)), y+10*s, 7*s, 3*s);
+            const wOff = waterFrame; // 0 or 1
+            const shift = wOff * 3 * s;
+            // Horizontal wavy lines at different heights
+            for (let wy = 2; wy < 15; wy += 4) {
+                const waveX = ((tx * 5 + wy * 3 + wOff * 2) % 6) * s;
+                ctx.fillRect(x + waveX, y + wy*s, 8*s, s);
+            }
+            // Darker depth lines
+            ctx.fillStyle = PAL.waterDark;
+            for (let wy = 4; wy < 15; wy += 5) {
+                const waveX = ((tx * 3 + wy * 7 + wOff) % 5) * s;
+                ctx.fillRect(x + waveX + 2*s, y + wy*s, 5*s, s);
+            }
             break;
-        case 4: // Flower
+
+        case 4: // Flower — grass with a small colored bloom
             ctx.fillStyle = PAL.green;
             ctx.fillRect(x, y, T, T);
-            // Flower
-            ctx.fillStyle = PAL.red;
-            ctx.fillRect(x+6*s, y+5*s, 5*s, 5*s);
-            ctx.fillStyle = PAL.yellow;
-            ctx.fillRect(x+7*s, y+6*s, 3*s, 3*s);
             // Stem
             ctx.fillStyle = PAL.darkGreen;
-            ctx.fillRect(x+7*s, y+10*s, 3*s, 5*s);
+            ctx.fillRect(x+7*s, y+9*s, s*2, s*4);
+            // Leaf
+            ctx.fillRect(x+5*s, y+11*s, s*2, s);
+            ctx.fillRect(x+9*s, y+10*s, s*2, s);
+            // Flower petals (3x3 with center)
+            const flowerColor = ((tx + ty) % 2 === 0) ? PAL.red : '#e850a0';
+            ctx.fillStyle = flowerColor;
+            ctx.fillRect(x+6*s, y+6*s, s*4, s*3); // main petals
+            ctx.fillRect(x+7*s, y+5*s, s*2, s); // top petal
+            ctx.fillRect(x+7*s, y+9*s, s*2, s); // bottom petal
+            // Yellow center
+            ctx.fillStyle = PAL.yellow;
+            ctx.fillRect(x+7*s, y+7*s, s*2, s*1);
             break;
     }
 }
@@ -491,28 +612,90 @@ function drawNPC(npc) {
     const y = npc.y * TILE;
     const s = TILE / 16;
     const completed = badges.has(npc.id);
+    const baseColor = completed ? PAL.gray : npc.color;
+    const darkColor = completed ? PAL.darkGray : shadeColor(npc.color, -30);
 
-    // Body
-    ctx.fillStyle = completed ? PAL.gray : npc.color;
-    ctx.fillRect(x+4*s, y+4*s, 8*s, 12*s);
-    // Head
-    ctx.fillStyle = PAL.lightTan;
-    ctx.fillRect(x+5*s, y+1*s, 7*s, 6*s);
-    // Eyes
-    ctx.fillStyle = PAL.black;
-    ctx.fillRect(x+6*s, y+3*s, 2*s, 2*s);
-    ctx.fillRect(x+10*s, y+3*s, 2*s, 2*s);
-    // Hat/identifier colored top
-    ctx.fillStyle = completed ? PAL.darkGray : npc.color;
-    ctx.fillRect(x+4*s, y+0, 8*s, 3*s);
+    // Ground circle/pedestal beneath NPC
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.beginPath();
+    ctx.ellipse(x + 8*s, y + 15*s, 7*s, 3*s, 0, 0, Math.PI*2);
+    ctx.fill();
 
-    // Exclamation mark if not completed
+    // Stone pedestal base
+    ctx.fillStyle = '#a0a0a0';
+    ctx.fillRect(x+3*s, y+13*s, 10*s, 3*s);
+    ctx.fillStyle = '#c0c0c0';
+    ctx.fillRect(x+4*s, y+13*s, 8*s, 2*s);
+
+    // NPC body — small shrine/totem style
+    // Pillar
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(x+5*s, y+5*s, 6*s, 8*s);
+    // Darker edges
+    ctx.fillStyle = darkColor;
+    ctx.fillRect(x+5*s, y+5*s, s, 8*s);
+    ctx.fillRect(x+10*s, y+5*s, s, 8*s);
+
+    // Top ornament (colored orb)
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(x+4*s, y+2*s, 8*s, 4*s);
+    ctx.fillRect(x+5*s, y+1*s, 6*s, 2*s);
+    // Orb highlight
     if (!completed) {
-        const bounce = Math.sin(Date.now() / 300) * 3;
-        ctx.fillStyle = PAL.yellow;
-        ctx.fillRect(x+7*s, y - 8*s + bounce, 3*s, 5*s);
-        ctx.fillRect(x+7*s, y - 2*s + bounce, 3*s, 2*s);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(x+5*s, y+2*s, 3*s, 2*s);
     }
+
+    // Symbol on front (letter)
+    ctx.fillStyle = PAL.white;
+    ctx.font = `${8*s}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const symbol = npc.badge.charAt(0);
+    ctx.fillText(symbol, x+8*s, y+9*s);
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'top';
+
+    // Glowing particle effect if not completed
+    if (!completed) {
+        const t = Date.now() / 1000;
+        // Floating particles around the shrine
+        for (let i = 0; i < 3; i++) {
+            const angle = t * 2 + i * (Math.PI * 2 / 3);
+            const px = x + 8*s + Math.cos(angle) * 6*s;
+            const py = y + 6*s + Math.sin(angle * 0.7) * 4*s;
+            const alpha = 0.4 + Math.sin(t * 3 + i) * 0.3;
+            ctx.fillStyle = `rgba(255,255,100,${alpha})`;
+            ctx.fillRect(px, py, s*1.5, s*1.5);
+        }
+
+        // Exclamation mark above
+        const bounce = Math.sin(Date.now() / 300) * 2;
+        ctx.fillStyle = PAL.yellow;
+        ctx.fillRect(x+7*s, y - 7*s + bounce, 3*s, 4*s);
+        ctx.fillRect(x+7*s, y - 2*s + bounce, 3*s, 2*s);
+        // Black outline for visibility
+        ctx.fillStyle = PAL.black;
+        ctx.fillRect(x+6.5*s, y - 7.5*s + bounce, s*0.5, 4.5*s);
+        ctx.fillRect(x+10*s, y - 7.5*s + bounce, s*0.5, 4.5*s);
+    } else {
+        // Checkmark for completed
+        ctx.fillStyle = PAL.lightGreen;
+        ctx.font = `${10*s}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText('✓', x+8*s, y - 4*s);
+        ctx.textAlign = 'start';
+    }
+}
+
+// Helper to darken/lighten hex colors
+function shadeColor(color, percent) {
+    const num = parseInt(color.replace('#',''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return `#${(0x1000000 + R*0x10000 + G*0x100 + B).toString(16).slice(1)}`;
 }
 
 function drawPlayer() {
@@ -521,8 +704,9 @@ function drawPlayer() {
     const frame = player.moving ? player.step : 0;
     const dir = player.dir;
 
-    // Draw using character sprite system — offset to fit tile from sprite
-    drawCharSprite(x, y - 12, playerName || 'Ben', dir, frame, 1.5);
+    // Draw using character sprite system — offset to center in tile
+    // Sprite is 16*1.5=24 wide, 20*1.5=30 tall at 1.5x scale
+    drawCharSprite(x, y - 6, playerName || 'Ben', dir, frame, 1.5);
 }
 
 // ============================================================
@@ -566,14 +750,9 @@ function drawTitle() {
     ctx.fillText('v2.0', CANVAS_W/2, titleY + 54);
 
     // Animated Pokemon-style sprite in center
-    const sprY = 195 + Math.sin(titleAnimTimer / 20) * 4;
-    // Draw a little character
-    ctx.fillStyle = PAL.blue;
-    ctx.fillRect(CANVAS_W/2-12, sprY, 24, 24);
-    ctx.fillStyle = PAL.lightTan;
-    ctx.fillRect(CANVAS_W/2-9, sprY-9, 18, 12);
-    ctx.fillStyle = PAL.red;
-    ctx.fillRect(CANVAS_W/2-9, sprY-12, 18, 5);
+    const sprY = 190 + Math.sin(titleAnimTimer / 20) * 4;
+    const titleFrame = Math.floor(titleAnimTimer / 25) % 2;
+    drawCharSprite(CANVAS_W/2 - 12, sprY, 'Ben', 0, titleFrame, 1.5);
 
     // Version/copyright style text
     ctx.fillStyle = PAL.lightGreen;
@@ -682,58 +861,86 @@ function drawIntroTile(tx, ty, type, offsetY) {
         case 'grass':
             ctx.fillStyle = PAL.green;
             ctx.fillRect(x, y, T, T);
-            ctx.fillStyle = PAL.lightGreen;
-            if ((tx + ty) % 3 === 0) {
-                ctx.fillRect(x+3*s, y+6*s, 3*s, 4*s);
-                ctx.fillRect(x+9*s, y+10*s, 3*s, 4*s);
+            if ((tx + ty * 7) % 11 === 0) {
+                ctx.fillStyle = PAL.darkGreen;
+                ctx.fillRect(x+5*s, y+8*s, s*2, s*2);
             }
             break;
         case 'path':
             ctx.fillStyle = PAL.tan;
             ctx.fillRect(x, y, T, T);
-            ctx.fillStyle = PAL.lightTan;
-            ctx.fillRect(x+2*s, y+2*s, 5*s, 5*s);
-            ctx.fillRect(x+10*s, y+8*s, 5*s, 5*s);
+            // Subtle edge
+            ctx.fillStyle = PAL.brown;
+            ctx.fillRect(x, y, s, T);
+            ctx.fillRect(x+T-s, y, s, T);
             break;
         case 'tree':
             ctx.fillStyle = PAL.green;
             ctx.fillRect(x, y, T, T);
+            // Trunk
             ctx.fillStyle = PAL.darkBrown;
-            ctx.fillRect(x+6*s, y+10*s, 4*s, 6*s);
+            ctx.fillRect(x+6*s, y+12*s, 4*s, 5*s);
+            ctx.fillStyle = PAL.brown;
+            ctx.fillRect(x+7*s, y+12*s, 2*s, 4*s);
+            // Canopy layers
+            ctx.fillStyle = '#1a5c2a';
+            ctx.fillRect(x+2*s, y+4*s, 12*s, 8*s);
+            ctx.fillRect(x+4*s, y+2*s, 8*s, 2*s);
             ctx.fillStyle = PAL.darkGreen;
-            ctx.fillRect(x+2*s, y+2*s, 12*s, 10*s);
-            ctx.fillRect(x+4*s, y+0, 8*s, 4*s);
+            ctx.fillRect(x+3*s, y+4*s, 10*s, 7*s);
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x+4*s, y+4*s, 4*s, 3*s);
             ctx.fillStyle = PAL.lightGreen;
-            ctx.fillRect(x+4*s, y+3*s, 4*s, 3*s);
+            ctx.fillRect(x+5*s, y+5*s, 2*s, 2*s);
             break;
         case 'building':
-            // Palace/office building
+            // Walls with texture
             ctx.fillStyle = '#e8e0d0';
             ctx.fillRect(x, y, T, T);
-            ctx.fillStyle = '#b8a890';
-            ctx.fillRect(x, y, T, 3*s);
-            // Windows
+            ctx.fillStyle = '#d8d0c0';
+            ctx.fillRect(x, y, T, 2*s);
+            // Windows with frames
+            ctx.fillStyle = PAL.darkBrown;
+            ctx.fillRect(x+2*s, y+5*s, 5*s, 5*s);
+            ctx.fillRect(x+9*s, y+5*s, 5*s, 5*s);
             ctx.fillStyle = '#68b8e8';
-            ctx.fillRect(x+3*s, y+5*s, 4*s, 4*s);
-            ctx.fillRect(x+9*s, y+5*s, 4*s, 4*s);
+            ctx.fillRect(x+3*s, y+6*s, 3*s, 3*s);
+            ctx.fillRect(x+10*s, y+6*s, 3*s, 3*s);
+            // Window shine
+            ctx.fillStyle = '#a0e0ff';
+            ctx.fillRect(x+3*s, y+6*s, s, s);
+            ctx.fillRect(x+10*s, y+6*s, s, s);
             break;
         case 'roof':
-            ctx.fillStyle = '#6850a0';
+            // Sloped roof with tiles
+            ctx.fillStyle = '#8b3030';
             ctx.fillRect(x, y, T, T);
-            ctx.fillStyle = '#8068b8';
-            ctx.fillRect(x+2*s, y+4*s, 12*s, 4*s);
-            // Spire accent
-            ctx.fillStyle = PAL.yellow;
-            ctx.fillRect(x+7*s, y+0, 3*s, 4*s);
+            // Tile pattern
+            ctx.fillStyle = '#a04040';
+            for (let r = 0; r < 4; r++) {
+                const rOff = (r % 2) * 4 * s;
+                for (let c = 0; c < 3; c++) {
+                    ctx.fillRect(x + rOff + c*6*s, y + r*4*s, 4*s, 3*s);
+                }
+            }
+            // Ridge at top
+            ctx.fillStyle = '#c06060';
+            ctx.fillRect(x, y, T, 2*s);
             break;
         case 'door':
             ctx.fillStyle = '#e8e0d0';
             ctx.fillRect(x, y, T, T);
-            // Door frame
+            // Door arch
             ctx.fillStyle = PAL.darkBrown;
-            ctx.fillRect(x+5*s, y+4*s, 6*s, 12*s);
+            ctx.fillRect(x+4*s, y+3*s, 8*s, 13*s);
+            ctx.fillRect(x+5*s, y+2*s, 6*s, 1*s);
+            // Door panels
             ctx.fillStyle = PAL.brown;
-            ctx.fillRect(x+6*s, y+5*s, 4*s, 11*s);
+            ctx.fillRect(x+5*s, y+4*s, 3*s, 12*s);
+            ctx.fillRect(x+9*s, y+4*s, 3*s, 12*s);
+            // Door knob
+            ctx.fillStyle = PAL.yellow;
+            ctx.fillRect(x+8*s, y+10*s, s, s);
             break;
     }
 }
@@ -927,22 +1134,54 @@ function drawOverworld() {
 function drawBadgeBar() {
     const badgeIcons = ['V','F','B','P','D'];
     const badgeColors = [PAL.red, PAL.blue, PAL.purple, PAL.yellow, PAL.green];
-    const startX = CANVAS_W - 120;
-    const y = 4;
+    const startX = CANVAS_W - 128;
+    const y = 6;
 
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(startX - 6, y - 2, 120, 20);
+    // Background panel
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(startX - 8, y - 4, 132, 24);
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.fillRect(startX - 7, y - 3, 130, 1);
 
     const npcIds = ['vibe','feeling','forward','proud','discuss'];
     for (let i = 0; i < 5; i++) {
-        const bx = startX + i * 22;
+        const bx = startX + i * 24 + 4;
+        const by = y + 8;
         const earned = badges.has(npcIds[i]);
-        ctx.fillStyle = earned ? badgeColors[i] : PAL.darkGray;
-        ctx.fillRect(bx, y, 16, 16);
-        ctx.fillStyle = earned ? PAL.white : PAL.black;
-        ctx.font = '10px monospace';
-        ctx.fillText(badgeIcons[i], bx+4, y+13);
+        const radius = 8;
+
+        // Circle badge
+        ctx.beginPath();
+        ctx.arc(bx + radius, by, radius, 0, Math.PI * 2);
+        if (earned) {
+            ctx.fillStyle = badgeColors[i];
+            ctx.fill();
+            // Highlight ring
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            ctx.arc(bx + radius - 2, by - 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = '#333';
+            ctx.fill();
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // Letter inside
+        ctx.fillStyle = earned ? PAL.white : '#555';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(badgeIcons[i], bx + radius, by + 1);
     }
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'top';
 }
 
 // ============================================================
@@ -1525,6 +1764,13 @@ function finishGame() {
 // MAIN GAME LOOP
 // ============================================================
 function gameLoop() {
+    // Water animation tick
+    waterTick++;
+    if (waterTick >= 30) {
+        waterFrame = 1 - waterFrame;
+        waterTick = 0;
+    }
+
     // Clear
     ctx.fillStyle = PAL.black;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
