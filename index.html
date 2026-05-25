@@ -9,8 +9,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f0f23;
-            color: #e0e0e0;
+            background: #f7f7f8;
+            color: #1a1a1a;
             min-height: 100vh;
             padding: 2rem;
         }
@@ -36,18 +36,19 @@
         }
 
         .sidebar-card {
-            background: #1a1a2e;
-            border: 1px solid #333;
-            border-radius: 16px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
             padding: 1.25rem;
             margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
 
         .sidebar-card h3 {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #667eea;
+            letter-spacing: 0.05em;
+            color: #635bff;
             margin-bottom: 1rem;
         }
 
@@ -60,7 +61,7 @@
             align-items: flex-start;
             gap: 0.75rem;
             padding: 0.6rem 0;
-            border-bottom: 1px solid #222;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .discuss-item:last-child {
@@ -70,31 +71,31 @@
         .discuss-item-author {
             font-size: 0.7rem;
             font-weight: 600;
-            color: #764ba2;
+            color: #635bff;
             white-space: nowrap;
             min-width: 50px;
         }
 
         .discuss-item-text {
             font-size: 0.85rem;
-            color: #ccc;
+            color: #4b5563;
             line-height: 1.4;
         }
 
         .discuss-empty {
             font-size: 0.85rem;
-            color: #444;
+            color: #9ca3af;
             font-style: italic;
         }
 
         .sidebar-subtitle {
             font-size: 0.75rem;
-            color: #555;
+            color: #6b7280;
             margin-bottom: 0.75rem;
         }
 
         .standup-person {
-            border: 1px solid #333;
+            border: 1px solid #e5e7eb;
             border-radius: 10px;
             margin-bottom: 0.5rem;
             overflow: hidden;
@@ -102,8 +103,8 @@
         }
 
         .standup-person.active {
-            border-color: #667eea;
-            box-shadow: 0 0 12px rgba(102, 126, 234, 0.2);
+            border-color: #635bff;
+            box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
         }
 
         .standup-person.done {
@@ -120,7 +121,7 @@
         }
 
         .standup-person-header:hover {
-            background: #2a2a4e;
+            background: #f9fafb;
         }
 
         .standup-person-vibe {
@@ -130,7 +131,7 @@
         .standup-person-name {
             font-size: 0.85rem;
             font-weight: 600;
-            color: #ccc;
+            color: #1a1a1a;
             flex: 1;
         }
 
@@ -138,18 +139,18 @@
             font-size: 0.7rem;
             padding: 0.2rem 0.5rem;
             border-radius: 6px;
-            background: #333;
-            color: #888;
+            background: #f3f4f6;
+            color: #6b7280;
         }
 
         .standup-person.active .standup-person-status {
-            background: #667eea;
+            background: #635bff;
             color: #fff;
         }
 
         .standup-person.done .standup-person-status {
-            background: #22c55e33;
-            color: #4ade80;
+            background: #dcfce7;
+            color: #16a34a;
         }
 
         .standup-person-detail {
@@ -168,14 +169,14 @@
         }
 
         .standup-detail-label {
-            color: #555;
+            color: #6b7280;
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.03em;
         }
 
         .standup-detail-value {
-            color: #bbb;
+            color: #374151;
             margin-top: 0.1rem;
         }
 
@@ -198,7 +199,7 @@
 
         .standup-empty {
             font-size: 0.85rem;
-            color: #444;
+            color: #9ca3af;
             font-style: italic;
         }
 
@@ -215,17 +216,16 @@
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 1.75rem;
+            font-weight: 600;
             text-align: center;
             margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #635bff;
         }
 
         .subtitle {
             text-align: center;
-            color: #888;
+            color: #6b7280;
             margin-bottom: 2rem;
             font-size: 0.9rem;
         }
@@ -240,9 +240,9 @@
         .name-chip {
             padding: 0.6rem 1.2rem;
             border-radius: 20px;
-            border: 2px solid #333;
-            background: #1a1a2e;
-            color: #ccc;
+            border: 1.5px solid #e5e7eb;
+            background: #fff;
+            color: #374151;
             font-size: 0.95rem;
             font-weight: 500;
             cursor: pointer;
@@ -250,22 +250,22 @@
         }
 
         .name-chip:hover {
-            border-color: #667eea;
-            background: #2a2a4e;
+            border-color: #635bff;
+            background: #f5f3ff;
         }
 
         .name-chip.selected {
-            border-color: #764ba2;
-            background: #2a2a4e;
-            color: #fff;
-            box-shadow: 0 0 15px rgba(118, 75, 162, 0.3);
+            border-color: #635bff;
+            background: #ede9fe;
+            color: #4338ca;
+            box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
         }
 
         .section-label {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #666;
+            color: #6b7280;
             margin-bottom: 0.75rem;
         }
 
@@ -279,25 +279,25 @@
         .emoji-btn {
             font-size: 2rem;
             padding: 0.75rem;
-            border: 2px solid transparent;
+            border: 1.5px solid transparent;
             border-radius: 12px;
-            background: #1a1a2e;
+            background: #f9fafb;
             cursor: pointer;
             transition: all 0.15s ease;
             text-align: center;
         }
 
         .emoji-btn:hover {
-            background: #2a2a4e;
+            background: #f5f3ff;
             transform: scale(1.1);
-            border-color: #667eea;
+            border-color: #635bff;
         }
 
         .emoji-btn.selected {
-            background: #2a2a4e;
-            border-color: #764ba2;
+            background: #ede9fe;
+            border-color: #635bff;
             transform: scale(1.15);
-            box-shadow: 0 0 20px rgba(118, 75, 162, 0.3);
+            box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
         }
 
         .lucky-section {
@@ -308,9 +308,9 @@
         .lucky-btn {
             font-size: 3rem;
             padding: 1rem 2rem;
-            border: 2px dashed #444;
+            border: 2px dashed #d1d5db;
             border-radius: 16px;
-            background: #1a1a2e;
+            background: #f9fafb;
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
@@ -318,8 +318,8 @@
         }
 
         .lucky-btn:hover {
-            border-color: #667eea;
-            background: #1e1e3a;
+            border-color: #635bff;
+            background: #f5f3ff;
             transform: scale(1.05);
         }
 
@@ -335,7 +335,7 @@
 
         .lucky-label {
             font-size: 0.8rem;
-            color: #888;
+            color: #6b7280;
             margin-top: 0.5rem;
         }
 
@@ -365,7 +365,7 @@
             padding: 1rem;
             border: none;
             border-radius: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #635bff;
             color: #fff;
             font-size: 1.1rem;
             font-weight: 600;
@@ -376,7 +376,7 @@
 
         .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);
         }
 
         .submit-btn:disabled {
@@ -387,13 +387,16 @@
         }
 
         .feed {
-            border-top: 1px solid #222;
-            padding-top: 1.5rem;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
 
         .feed h2 {
             font-size: 1rem;
-            color: #888;
+            color: #6b7280;
             margin-bottom: 1rem;
         }
 
@@ -417,19 +420,19 @@
 
         .feed-name {
             font-weight: 600;
-            color: #ccc;
+            color: #1a1a1a;
         }
 
         .feed-time {
             font-size: 0.75rem;
-            color: #555;
+            color: #9ca3af;
             margin-left: auto;
             white-space: nowrap;
         }
 
         .feed-empty {
             text-align: center;
-            color: #444;
+            color: #9ca3af;
             padding: 2rem;
             font-style: italic;
         }
@@ -438,7 +441,7 @@
             display: flex;
             gap: 0.5rem;
             margin-bottom: 1.5rem;
-            background: #1a1a2e;
+            background: #f3f4f6;
             padding: 0.25rem;
             border-radius: 12px;
         }
@@ -449,7 +452,7 @@
             border: none;
             border-radius: 10px;
             background: transparent;
-            color: #888;
+            color: #6b7280;
             font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
@@ -457,8 +460,9 @@
         }
 
         .tab.active {
-            background: #2a2a4e;
-            color: #fff;
+            background: #fff;
+            color: #1a1a1a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         .panel { display: none; }
@@ -481,13 +485,13 @@
         }
 
         .gif-item:hover {
-            border-color: #667eea;
+            border-color: #635bff;
             transform: scale(1.03);
         }
 
         .gif-item.selected {
-            border-color: #764ba2;
-            box-shadow: 0 0 15px rgba(118, 75, 162, 0.4);
+            border-color: #635bff;
+            box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
         }
 
         .gif-item img {
@@ -506,142 +510,58 @@
         .word-chip {
             padding: 0.5rem 1rem;
             border-radius: 20px;
-            background: #1a1a2e;
-            border: 1px solid #333;
-            color: #ccc;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            color: #374151;
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .word-chip:hover {
-            border-color: #667eea;
-            background: #2a2a4e;
+            border-color: #635bff;
+            background: #f5f3ff;
         }
 
         .word-chip.selected {
-            border-color: #764ba2;
-            background: #2a2a4e;
-            color: #fff;
+            border-color: #635bff;
+            background: #ede9fe;
+            color: #4338ca;
         }
 
         .freeform-section {
-            margin-bottom: 0.5rem;
-            border: 1px solid #2a2a4e;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: border-color 0.2s;
-        }
-
-        .freeform-section.has-content {
-            border-color: #4ade8066;
-        }
-
-        .freeform-section.expanded {
-            border-color: #667eea55;
-        }
-
-        .freeform-header {
-            display: flex;
-            align-items: center;
-            padding: 0.7rem 1rem;
-            cursor: pointer;
-            transition: background 0.15s;
-            user-select: none;
-        }
-
-        .freeform-header:hover {
-            background: #1e1e3a;
-        }
-
-        .freeform-header-icon {
-            font-size: 1.1rem;
-            margin-right: 0.6rem;
-        }
-
-        .freeform-header-title {
-            font-size: 0.85rem;
-            color: #bbb;
-            flex: 1;
-        }
-
-        .freeform-header-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: transparent;
-            transition: background 0.2s;
-            margin-right: 0.5rem;
-        }
-
-        .freeform-section.has-content .freeform-header-indicator {
-            background: #4ade80;
-        }
-
-        .freeform-header-chevron {
-            font-size: 0.7rem;
-            color: #555;
-            transition: transform 0.2s;
-        }
-
-        .freeform-section.expanded .freeform-header-chevron {
-            transform: rotate(90deg);
-        }
-
-        .freeform-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.25s ease, padding 0.25s ease;
-            padding: 0 1rem;
-        }
-
-        .freeform-section.expanded .freeform-body {
-            max-height: 200px;
-            padding: 0 1rem 0.75rem;
+            margin-bottom: 1.5rem;
         }
 
         .freeform-section textarea {
             width: 100%;
-            padding: 0.6rem 0.75rem;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #12121f;
-            color: #fff;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            color: #1a1a1a;
             font-size: 0.9rem;
             font-family: inherit;
             outline: none;
             resize: none;
-            transition: border-color 0.2s;
-            min-height: 50px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            min-height: 60px;
         }
 
         .freeform-section textarea:focus {
-            border-color: #667eea;
+            border-color: #635bff;
+            box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
         }
 
         .freeform-section textarea::placeholder {
-            color: #555;
-            font-size: 0.85rem;
-        }
-
-        .freeform-char-count {
-            font-size: 0.7rem;
-            color: #444;
-            text-align: right;
-            margin-top: 0.3rem;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .freeform-char-count.visible {
-            opacity: 1;
+            color: #9ca3af;
         }
 
         .freeform-label {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #666;
+            color: #6b7280;
             margin-bottom: 0.5rem;
         }
 
@@ -650,7 +570,8 @@
             flex-direction: column;
             gap: 0.5rem;
             padding: 1rem;
-            background: #1a1a2e;
+            background: #f9fafb;
+            border: 1px solid #f0f0f0;
             border-radius: 12px;
             margin-bottom: 0.75rem;
             animation: slideIn 0.3s ease;
@@ -668,7 +589,7 @@
 
         .feed-details p {
             font-size: 0.85rem;
-            color: #aaa;
+            color: #4b5563;
             margin-top: 0.25rem;
             line-height: 1.4;
         }
@@ -676,7 +597,7 @@
         .feed-details .feed-detail-label {
             font-size: 0.7rem;
             text-transform: uppercase;
-            color: #555;
+            color: #9ca3af;
             letter-spacing: 0.03em;
         }
 
@@ -688,18 +609,19 @@
 
         .feed-action-btn {
             padding: 0.5rem 1rem;
-            border: 1px solid #333;
+            border: 1px solid #e5e7eb;
             border-radius: 8px;
-            background: #1a1a2e;
-            color: #aaa;
+            background: #fff;
+            color: #6b7280;
             font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .feed-action-btn:hover {
-            border-color: #667eea;
-            color: #fff;
+            border-color: #635bff;
+            color: #635bff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         }
 
         .feed-action-btn.danger:hover {
@@ -718,15 +640,15 @@
             border: none;
             border-radius: 6px;
             background: transparent;
-            color: #555;
+            color: #9ca3af;
             font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .feed-item-btn:hover {
-            background: #2a2a4e;
-            color: #ccc;
+            background: #f3f4f6;
+            color: #374151;
         }
 
         .feed-item-btn.delete:hover {
@@ -737,7 +659,8 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
             z-index: 100;
             align-items: center;
             justify-content: center;
@@ -749,34 +672,24 @@
         }
 
         .edit-modal-content {
-            background: #1a1a2e;
-            border: 1px solid #333;
+            background: #fff;
+            border: 1px solid #e5e7eb;
             border-radius: 16px;
             padding: 1.5rem;
             width: 100%;
             max-width: 500px;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
         }
 
         .edit-modal-content h3 {
             margin-bottom: 1rem;
-            color: #ccc;
+            color: #1a1a1a;
         }
 
         .edit-modal-content .freeform-section {
             margin-bottom: 1rem;
-            border: none;
-            border-radius: 0;
-            overflow: visible;
-        }
-
-        .edit-modal-content .freeform-section textarea {
-            border-radius: 12px;
-            background: #1a1a2e;
-            border: 1px solid #333;
-            padding: 0.75rem 1rem;
-            min-height: 60px;
         }
 
         .edit-modal-actions {
@@ -797,13 +710,14 @@
         }
 
         .edit-save-btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #635bff;
             color: #fff;
         }
 
         .edit-cancel-btn {
-            background: #2a2a4e;
-            color: #aaa;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb !important;
         }
 
         .export-toast {
@@ -825,153 +739,11 @@
             transform: translateX(-50%) translateY(0);
         }
 
-        /* Onboarding overlay */
-        .onboarding-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.75);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            z-index: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .onboarding-overlay.hidden {
-            display: none;
-        }
-
-        .onboarding-card {
-            background: #fff;
-            border-radius: 20px;
-            padding: 2.5rem 2rem 2rem;
-            max-width: 440px;
-            width: 100%;
-            text-align: center;
-            color: #1a1a2e;
-        }
-
-        .onboarding-card h2 {
-            font-size: 1.6rem;
-            margin-bottom: 0.75rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .onboarding-card p {
-            font-size: 0.95rem;
-            color: #555;
-            line-height: 1.5;
-            margin-bottom: 0.5rem;
-        }
-
-        .onboarding-card .onboarding-context {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 1.5rem;
-        }
-
-        .onboarding-steps {
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-            margin: 1.5rem 0;
-        }
-
-        .onboarding-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .onboarding-step-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #f0f0ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-        }
-
-        .onboarding-step-label {
-            font-size: 0.7rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-
-        .onboarding-step-arrow {
-            display: flex;
-            align-items: center;
-            color: #ccc;
-            font-size: 1.2rem;
-            margin-top: -1rem;
-        }
-
-        .onboarding-got-it {
-            padding: 0.8rem 2.5rem;
-            border: none;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: #fff;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s;
-        }
-
-        .onboarding-got-it:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        /* Step badges */
-        .step-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 1.3rem;
-            height: 1.3rem;
-            border-radius: 50%;
-            background: #2a2a4e;
-            color: #667eea;
-            font-size: 0.65rem;
-            font-weight: 700;
-            margin-right: 0.5rem;
-            transition: all 0.3s;
-            vertical-align: middle;
-        }
-
-        .step-badge.completed {
-            background: #22c55e;
-            color: #fff;
-        }
-
-        /* Dimmed/disabled states */
-        .section-dimmed {
-            opacity: 0.4;
-            pointer-events: none;
-            position: relative;
-        }
-
-        .section-hint {
-            font-size: 0.8rem;
-            color: #667eea;
-            font-style: italic;
-            margin-bottom: 0.75rem;
-        }
-
         .feed-tab-bar {
             display: flex;
             gap: 0;
             margin-bottom: 1rem;
-            background: #1a1a2e;
+            background: #f3f4f6;
             padding: 0.2rem;
             border-radius: 10px;
         }
@@ -982,7 +754,7 @@
             border: none;
             border-radius: 8px;
             background: transparent;
-            color: #666;
+            color: #6b7280;
             font-size: 0.8rem;
             font-weight: 500;
             cursor: pointer;
@@ -990,8 +762,9 @@
         }
 
         .feed-tab.active {
-            background: #2a2a4e;
-            color: #fff;
+            background: #fff;
+            color: #1a1a1a;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
         }
 
         .archive-section { display: none; }
@@ -1002,13 +775,13 @@
         }
 
         .archive-date-header {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            color: #555;
+            color: #6b7280;
             margin-bottom: 0.5rem;
             padding-bottom: 0.4rem;
-            border-bottom: 1px solid #222;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .instructions-panel {
@@ -1019,18 +792,19 @@
         }
 
         .instructions-card {
-            background: #1a1a2e;
-            border: 1px solid #333;
-            border-radius: 16px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
             padding: 1.25rem;
             margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
 
         .instructions-card h3 {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #667eea;
+            letter-spacing: 0.05em;
+            color: #635bff;
             margin-bottom: 0.75rem;
         }
 
@@ -1043,7 +817,7 @@
         .instructions-card ol li {
             counter-increment: steps;
             font-size: 0.8rem;
-            color: #999;
+            color: #6b7280;
             padding: 0.3rem 0;
             padding-left: 1.5rem;
             position: relative;
@@ -1057,8 +831,8 @@
             width: 1.1rem;
             height: 1.1rem;
             border-radius: 50%;
-            background: #2a2a4e;
-            color: #667eea;
+            background: #ede9fe;
+            color: #635bff;
             font-size: 0.65rem;
             font-weight: 700;
             display: flex;
@@ -1069,20 +843,20 @@
 
         .instructions-note {
             font-size: 0.75rem;
-            color: #555;
+            color: #6b7280;
             margin-top: 0.75rem;
             line-height: 1.4;
         }
 
         .instructions-divider {
             height: 1px;
-            background: #333;
+            background: #e5e7eb;
             margin: 0.75rem 0;
         }
 
         .instructions-tip {
             font-size: 0.75rem;
-            color: #764ba2;
+            color: #7c3aed;
             font-style: italic;
         }
 
@@ -1090,24 +864,25 @@
             display: block;
             text-align: center;
             font-size: 0.8rem;
-            color: #667eea;
+            color: #635bff;
             text-decoration: none;
             padding: 0.6rem 1rem;
-            border: 1px solid #333;
+            border: 1px solid #e5e7eb;
             border-radius: 10px;
-            background: #1a1a2e;
+            background: #fff;
             transition: all 0.2s;
             margin-bottom: 0.75rem;
         }
 
         .feedback-link:hover {
-            border-color: #667eea;
-            background: #2a2a4e;
+            border-color: #635bff;
+            background: #f5f3ff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         }
 
         .made-with {
             font-size: 0.7rem;
-            color: #444;
+            color: #9ca3af;
             text-align: center;
         }
 
@@ -1119,34 +894,8 @@
     </style>
 </head>
 <body>
-    <!-- Onboarding overlay (first visit only) -->
-    <div class="onboarding-overlay" id="onboardingOverlay">
-        <div class="onboarding-card">
-            <h2>Welcome to Vibe Check!</h2>
-            <p>Pick your name, choose a vibe, answer a few prompts, and check in. Takes 2 minutes.</p>
-            <div class="onboarding-steps">
-                <div class="onboarding-step">
-                    <div class="onboarding-step-icon">👤</div>
-                    <span class="onboarding-step-label">Pick name</span>
-                </div>
-                <div class="onboarding-step-arrow">→</div>
-                <div class="onboarding-step">
-                    <div class="onboarding-step-icon">✨</div>
-                    <span class="onboarding-step-label">Pick vibe</span>
-                </div>
-                <div class="onboarding-step-arrow">→</div>
-                <div class="onboarding-step">
-                    <div class="onboarding-step-icon">✅</div>
-                    <span class="onboarding-step-label">Check in</span>
-                </div>
-            </div>
-            <p class="onboarding-context">Your team lead uses the sidebar to run through everyone during standup.</p>
-            <button class="onboarding-got-it" id="onboardingDismiss">Got it</button>
-        </div>
-    </div>
-
     <!-- Floating particles background -->
-    <canvas id="particleCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.4;"></canvas>
+    <canvas id="particleCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.15;"></canvas>
 
     <div class="page-layout" style="position:relative;z-index:1;">
 
@@ -1162,13 +911,13 @@
             </ol>
             <p class="instructions-note">Your manager uses the standup sidebar to run through everyone. Discussion items get collected automatically.</p>
             <div class="instructions-divider"></div>
-            <p class="instructions-tip">Pro tip: hit 🤷 Lucky for a random vibe when you can't pick one.</p>
+            <p class="instructions-tip">Pro tip: hit Lucky for a random vibe when you can't pick one.</p>
         </div>
         <a href="https://stripe.enterprise.slack.com/messages/benrj" class="feedback-link" target="_blank">
-            💬 got feedback? slack ben
+            got feedback? slack ben
         </a>
-        <a id="adventureLink" href="game.html" class="feedback-link" style="border-color:#764ba2;color:#764ba2;">
-            🎮 adventure mode
+        <a id="adventureLink" href="game.html" class="feedback-link" style="border-color:#7c3aed;color:#7c3aed;">
+            adventure mode
         </a>
         <p class="made-with">made with vibes by APAC PMM</p>
     </aside>
@@ -1177,16 +926,12 @@
         <h1>vibe check</h1>
         <p class="subtitle">how are you showing up today?</p>
 
-        <div class="section-label"><span class="step-badge" id="stepBadge1">1</span>Pick your name</div>
         <div class="name-picker" id="namePicker"></div>
 
-        <div id="vibeSection">
-        <div class="section-label"><span class="step-badge" id="stepBadge2">2</span>Choose your vibe</div>
-        <div id="vibeHint" class="section-hint" style="display:none;">pick your name first</div>
         <div class="tab-bar">
             <button class="tab active" data-tab="emoji">Emoji</button>
             <button class="tab" data-tab="word">Word</button>
-            <button class="tab" data-tab="lucky">🤷 Lucky</button>
+            <button class="tab" data-tab="lucky">Lucky</button>
         </div>
 
         <!-- Emoji Panel -->
@@ -1210,67 +955,27 @@
             </div>
         </div>
 
-        </div><!-- end vibeSection -->
-
-        <div id="promptsSection">
-        <div class="section-label"><span class="step-badge" id="stepBadge3">3</span>Answer the prompts</div>
-
-        <div class="freeform-section" data-prompt="feeling">
-            <div class="freeform-header" onclick="togglePrompt(this)">
-                <span class="freeform-header-icon">💭</span>
-                <span class="freeform-header-title">How are you feeling?</span>
-                <span class="freeform-header-indicator"></span>
-                <span class="freeform-header-chevron">▶</span>
-            </div>
-            <div class="freeform-body">
-                <textarea id="feelingInput" placeholder="good vibes, bad vibes, just vibes..." maxlength="200" rows="2"></textarea>
-                <div class="freeform-char-count" id="feelingCount">0/200</div>
-            </div>
+        <div class="freeform-section">
+            <p class="freeform-label">how are you feeling today?</p>
+            <textarea id="feelingInput" placeholder="in a sentence or less..." maxlength="200" rows="2"></textarea>
         </div>
 
-        <div class="freeform-section" data-prompt="lookingForward">
-            <div class="freeform-header" onclick="togglePrompt(this)">
-                <span class="freeform-header-icon">🌅</span>
-                <span class="freeform-header-title">Looking forward to?</span>
-                <span class="freeform-header-indicator"></span>
-                <span class="freeform-header-chevron">▶</span>
-            </div>
-            <div class="freeform-body">
-                <textarea id="lookingForwardInput" placeholder="weekend? a project? lunch?" maxlength="200" rows="2"></textarea>
-                <div class="freeform-char-count" id="lookingForwardCount">0/200</div>
-            </div>
+        <div class="freeform-section">
+            <p class="freeform-label">one thing you're looking forward to?</p>
+            <textarea id="lookingForwardInput" placeholder="big or small, anything counts..." maxlength="200" rows="2"></textarea>
         </div>
 
-        <div class="freeform-section" data-prompt="proudOf">
-            <div class="freeform-header" onclick="togglePrompt(this)">
-                <span class="freeform-header-icon">🏆</span>
-                <span class="freeform-header-title">Proud of?</span>
-                <span class="freeform-header-indicator"></span>
-                <span class="freeform-header-chevron">▶</span>
-            </div>
-            <div class="freeform-body">
-                <textarea id="proudOfInput" placeholder="big or small, it counts" maxlength="200" rows="2"></textarea>
-                <div class="freeform-char-count" id="proudOfCount">0/200</div>
-            </div>
+        <div class="freeform-section">
+            <p class="freeform-label">something you were proud of this week?</p>
+            <textarea id="proudOfInput" placeholder="a win, a moment, a thing you shipped..." maxlength="200" rows="2"></textarea>
         </div>
 
-        <div class="freeform-section expanded" data-prompt="talkAbout">
-            <div class="freeform-header" onclick="togglePrompt(this)">
-                <span class="freeform-header-icon">🗣️</span>
-                <span class="freeform-header-title">Need to discuss?</span>
-                <span class="freeform-header-indicator"></span>
-                <span class="freeform-header-chevron">▶</span>
-            </div>
-            <div class="freeform-body">
-                <textarea id="talkAboutInput" placeholder="blockers, ideas, hot takes..." maxlength="200" rows="2"></textarea>
-                <div class="freeform-char-count" id="talkAboutCount">0/200</div>
-            </div>
+        <div class="freeform-section">
+            <p class="freeform-label">anything we need to talk about today?</p>
+            <textarea id="talkAboutInput" placeholder="blockers, ideas, stuff on your mind..." maxlength="200" rows="2"></textarea>
         </div>
 
-        </div><!-- end promptsSection -->
-
-        <div class="section-label" style="margin-top:1rem"><span class="step-badge" id="stepBadge4">4</span>Check in</div>
-        <button class="submit-btn" id="submitBtn" disabled>pick a vibe to check in</button>
+        <button class="submit-btn" id="submitBtn" disabled>check in</button>
 
         <div class="feed">
             <div class="feed-tab-bar">
@@ -1278,8 +983,8 @@
                 <button class="feed-tab" id="feedTabArchive">archive</button>
             </div>
             <div class="feed-actions">
-                <button class="feed-action-btn" id="exportBtn">📋 log this week</button>
-                <button class="feed-action-btn danger" id="resetBtn">🗑 reset</button>
+                <button class="feed-action-btn" id="exportBtn">log this week</button>
+                <button class="feed-action-btn danger" id="resetBtn">reset</button>
             </div>
             <div id="feedToday">
                 <div id="feedList">
@@ -1448,7 +1153,7 @@
                 luckyResult.innerHTML = result.value;
             } else {
                 result = { type: 'phrase', value: LUCKY_PHRASES[Math.floor(Math.random() * LUCKY_PHRASES.length)] };
-                luckyResult.innerHTML = `<span style="font-size:1.2rem;color:#ccc;font-style:italic">"${result.value}"</span>`;
+                luckyResult.innerHTML = `<span style="font-size:1.2rem;color:#4b5563;font-style:italic">"${result.value}"</span>`;
             }
 
             luckyResult.classList.add('visible');
@@ -1480,44 +1185,6 @@
         function updateSubmitBtn() {
             document.getElementById('submitBtn').disabled = !state.selection || !selectedName;
         }
-
-        // Accordion prompt toggle
-        function togglePrompt(headerEl) {
-            const section = headerEl.closest('.freeform-section');
-            section.classList.toggle('expanded');
-            if (section.classList.contains('expanded')) {
-                const textarea = section.querySelector('textarea');
-                setTimeout(() => textarea.focus(), 260);
-            }
-        }
-
-        // Character counters + has-content indicator
-        const promptTextareas = [
-            { input: 'feelingInput', counter: 'feelingCount' },
-            { input: 'lookingForwardInput', counter: 'lookingForwardCount' },
-            { input: 'proudOfInput', counter: 'proudOfCount' },
-            { input: 'talkAboutInput', counter: 'talkAboutCount' }
-        ];
-
-        promptTextareas.forEach(({ input, counter }) => {
-            const textarea = document.getElementById(input);
-            const counterEl = document.getElementById(counter);
-            const section = textarea.closest('.freeform-section');
-
-            textarea.addEventListener('input', () => {
-                const len = textarea.value.length;
-                counterEl.textContent = `${len}/200`;
-                section.classList.toggle('has-content', len > 0);
-            });
-
-            textarea.addEventListener('focus', () => {
-                counterEl.classList.add('visible');
-            });
-
-            textarea.addEventListener('blur', () => {
-                counterEl.classList.remove('visible');
-            });
-        });
 
         // Submit
         document.getElementById('submitBtn').onclick = () => {
@@ -1567,25 +1234,13 @@
             document.getElementById('proudOfInput').value = '';
             document.getElementById('talkAboutInput').value = '';
 
-            // Reset accordion state
-            document.querySelectorAll('.freeform-section').forEach(s => {
-                s.classList.remove('has-content');
-                if (s.dataset.prompt !== 'talkAbout') s.classList.remove('expanded');
-            });
-            document.querySelectorAll('.freeform-char-count').forEach(c => {
-                c.textContent = '0/200';
-                c.classList.remove('visible');
-            });
-
             // Brief success flash
             const btn = document.getElementById('submitBtn');
-            btn.textContent = '✓ checked in!';
-            btn.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
-            document.getElementById('stepBadge4').textContent = '✓';
-            document.getElementById('stepBadge4').classList.add('completed');
+            btn.textContent = 'checked in!';
+            btn.style.background = '#22c55e';
             setTimeout(() => {
+                btn.textContent = 'check in';
                 btn.style.background = '';
-                updateStepProgress();
             }, 2000);
         };
 
@@ -1871,8 +1526,8 @@
                             <span class="standup-person-status">${status}</span>
                         </div>
                         <div class="standup-person-detail">
-                            ${detailHtml || '<div class="standup-detail-row"><div class="standup-detail-value" style="color:#555">no details added</div></div>'}
-                            <button class="standup-done-btn" onclick="markDone('${escapeHtml(item.name)}')">mark done ✓</button>
+                            ${detailHtml || '<div class="standup-detail-row"><div class="standup-detail-value" style="color:#9ca3af">no details added</div></div>'}
+                            <button class="standup-done-btn" onclick="markDone('${escapeHtml(item.name)}')">mark done</button>
                         </div>
                     </div>
                 `;
@@ -1922,7 +1577,7 @@
 
         renderFeed();
 
-        // Floating particles
+        // Floating particles (subtle dots)
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -1934,19 +1589,15 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        const particleEmojis = ['✨', '🌟', '💫', '⭐', '🔮', '🪩'];
-
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 30; i++) {
             particles.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                vx: (Math.random() - 0.5) * 0.3,
-                vy: (Math.random() - 0.5) * 0.3,
-                emoji: particleEmojis[Math.floor(Math.random() * particleEmojis.length)],
-                size: 10 + Math.random() * 14,
-                opacity: 0.15 + Math.random() * 0.25,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.01
+                vx: (Math.random() - 0.5) * 0.2,
+                vy: (Math.random() - 0.5) * 0.2,
+                size: 2 + Math.random() * 3,
+                opacity: 0.1 + Math.random() * 0.2,
+                color: Math.random() > 0.5 ? '#635bff' : '#7c3aed'
             });
         }
 
@@ -1955,7 +1606,6 @@
             particles.forEach(p => {
                 p.x += p.vx;
                 p.y += p.vy;
-                p.rotation += p.rotationSpeed;
 
                 if (p.x < -50) p.x = canvas.width + 50;
                 if (p.x > canvas.width + 50) p.x = -50;
@@ -1964,12 +1614,10 @@
 
                 ctx.save();
                 ctx.globalAlpha = p.opacity;
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation);
-                ctx.font = `${p.size}px serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(p.emoji, 0, 0);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
                 ctx.restore();
             });
             requestAnimationFrame(animateParticles);
@@ -1984,108 +1632,6 @@
                 link.href = 'game.html?team=' + encodeURIComponent(teamParam);
             }
         })();
-
-        // Onboarding: first-visit detection
-        (() => {
-            const overlay = document.getElementById('onboardingOverlay');
-            if (localStorage.getItem('vibecheck-returning')) {
-                overlay.classList.add('hidden');
-            }
-            document.getElementById('onboardingDismiss').onclick = () => {
-                localStorage.setItem('vibecheck-returning', '1');
-                overlay.classList.add('hidden');
-            };
-        })();
-
-        // Step progress and empty-state management
-        function updateStepProgress() {
-            const badge1 = document.getElementById('stepBadge1');
-            const badge2 = document.getElementById('stepBadge2');
-            const badge3 = document.getElementById('stepBadge3');
-            const badge4 = document.getElementById('stepBadge4');
-            const vibeSection = document.getElementById('vibeSection');
-            const promptsSection = document.getElementById('promptsSection');
-            const vibeHint = document.getElementById('vibeHint');
-            const submitBtn = document.getElementById('submitBtn');
-
-            const nameSelected = !!selectedName;
-            const vibeSelected = !!state.selection;
-
-            // Step 1: name
-            if (nameSelected) {
-                badge1.textContent = '✓';
-                badge1.classList.add('completed');
-            } else {
-                badge1.textContent = '1';
-                badge1.classList.remove('completed');
-            }
-
-            // Step 2: vibe
-            if (vibeSelected) {
-                badge2.textContent = '✓';
-                badge2.classList.add('completed');
-            } else {
-                badge2.textContent = '2';
-                badge2.classList.remove('completed');
-            }
-
-            // Step 3: prompts (completed if any text entered)
-            const anyPrompt = document.getElementById('feelingInput').value.trim() ||
-                              document.getElementById('lookingForwardInput').value.trim() ||
-                              document.getElementById('proudOfInput').value.trim() ||
-                              document.getElementById('talkAboutInput').value.trim();
-            if (anyPrompt) {
-                badge3.textContent = '✓';
-                badge3.classList.add('completed');
-            } else {
-                badge3.textContent = '3';
-                badge3.classList.remove('completed');
-            }
-
-            // Step 4: always shows 4 until submitted (handled by success flash)
-            badge4.textContent = '4';
-            badge4.classList.remove('completed');
-
-            // Dim vibe section if no name selected
-            if (!nameSelected) {
-                vibeSection.classList.add('section-dimmed');
-                vibeHint.style.display = 'block';
-            } else {
-                vibeSection.classList.remove('section-dimmed');
-                vibeHint.style.display = 'none';
-            }
-
-            // Dim prompts section if no name selected
-            if (!nameSelected) {
-                promptsSection.classList.add('section-dimmed');
-            } else {
-                promptsSection.classList.remove('section-dimmed');
-            }
-
-            // Update submit button text based on state
-            if (!nameSelected) {
-                submitBtn.textContent = 'pick your name first';
-            } else if (!vibeSelected) {
-                submitBtn.textContent = 'pick a vibe to check in';
-            } else {
-                submitBtn.textContent = 'check in';
-            }
-        }
-
-        // Hook step progress into existing updateSubmitBtn
-        const _originalUpdateSubmitBtn = updateSubmitBtn;
-        updateSubmitBtn = function() {
-            _originalUpdateSubmitBtn();
-            updateStepProgress();
-        };
-
-        // Listen for typing in prompts to update badge 3
-        ['feelingInput', 'lookingForwardInput', 'proudOfInput', 'talkAboutInput'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updateStepProgress);
-        });
-
-        // Initial step progress render
-        updateStepProgress();
     </script>
 </body>
 </html>
