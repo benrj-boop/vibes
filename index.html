@@ -1,443 +1,1412 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vibes — APAC PMM</title>
-<style>
-  :root {
-    --bg: #1a1a2e;
-    --card: #16213e;
-    --accent: #0f3460;
-    --highlight: #e94560;
-    --text: #eaeaea;
-    --muted: #8892a4;
-    --green: #4ecca3;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 2rem;
-    min-height: 100vh;
-  }
-  h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.25rem;
-    background: linear-gradient(135deg, var(--highlight), #ff6b6b);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.9rem; }
-  .week-label { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
-  .team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2rem;
-  }
-  .card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid var(--accent);
-    transition: border-color 0.2s;
-  }
-  .card.has-vibe { border-color: var(--green); }
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  .card-name { font-weight: 600; font-size: 1.1rem; }
-  .card-market { color: var(--muted); font-size: 0.8rem; }
-  .emoji-pick {
-    font-size: 2.5rem;
-    cursor: pointer;
-    text-align: center;
-    padding: 0.5rem;
-    border-radius: 8px;
-    background: var(--accent);
-    margin-bottom: 0.75rem;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
-  }
-  .emoji-pick:hover { background: #1a3a6e; }
-  .emoji-pick.empty { font-size: 1rem; color: var(--muted); }
-  .song-input {
-    width: 100%;
-    padding: 0.6rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid var(--accent);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
-  }
-  .song-input::placeholder { color: var(--muted); }
-  .clear-btn {
-    background: none;
-    border: 1px solid var(--muted);
-    color: var(--muted);
-    padding: 0.35rem 0.75rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-  }
-  .clear-btn:hover { border-color: var(--highlight); color: var(--highlight); }
-  .actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-  }
-  .log-btn {
-    background: var(--green);
-    color: var(--bg);
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  .log-btn:hover { opacity: 0.85; }
-  .reset-btn {
-    background: none;
-    border: 1px solid var(--muted);
-    color: var(--muted);
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    cursor: pointer;
-  }
-  .reset-btn:hover { border-color: var(--highlight); color: var(--highlight); }
-  .toast {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background: var(--green);
-    color: var(--bg);
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateY(0); }
-  .history { margin-top: 3rem; }
-  .history h2 { font-size: 1.2rem; margin-bottom: 1rem; color: var(--muted); }
-  .history-entry {
-    background: var(--card);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 0.75rem;
-    border: 1px solid var(--accent);
-  }
-  .history-date { color: var(--muted); font-size: 0.8rem; margin-bottom: 0.5rem; }
-  .history-vibes { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-  .history-vibe { font-size: 0.9rem; }
-  .history-vibe .emoji { font-size: 1.3rem; margin-right: 0.25rem; }
-  .emoji-picker-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-  }
-  .emoji-picker-overlay.open { display: flex; }
-  .emoji-grid {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 1.5rem;
-    max-width: 360px;
-    width: 90%;
-    max-height: 400px;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 0.5rem;
-  }
-  .emoji-option {
-    font-size: 1.5rem;
-    cursor: pointer;
-    text-align: center;
-    padding: 0.4rem;
-    border-radius: 6px;
-    transition: background 0.15s;
-  }
-  .emoji-option:hover { background: var(--accent); }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Vibe Check</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .page-layout {
+            display: flex;
+            gap: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+
+        .container {
+            max-width: 640px;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 320px;
+            position: sticky;
+            top: 2rem;
+            flex-shrink: 0;
+        }
+
+        .sidebar-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .discuss-list {
+            list-style: none;
+        }
+
+        .discuss-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .discuss-item:last-child {
+            border-bottom: none;
+        }
+
+        .discuss-item-author {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #764ba2;
+            white-space: nowrap;
+            min-width: 50px;
+        }
+
+        .discuss-item-text {
+            font-size: 0.85rem;
+            color: #ccc;
+            line-height: 1.4;
+        }
+
+        .discuss-empty {
+            font-size: 0.85rem;
+            color: #444;
+            font-style: italic;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.75rem;
+            color: #555;
+            margin-bottom: 0.75rem;
+        }
+
+        .standup-person {
+            border: 1px solid #333;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .standup-person.active {
+            border-color: #667eea;
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .standup-person.done {
+            opacity: 0.5;
+        }
+
+        .standup-person-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 0.75rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .standup-person-header:hover {
+            background: #2a2a4e;
+        }
+
+        .standup-person-vibe {
+            font-size: 1.3rem;
+        }
+
+        .standup-person-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ccc;
+            flex: 1;
+        }
+
+        .standup-person-status {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            background: #333;
+            color: #888;
+        }
+
+        .standup-person.active .standup-person-status {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .standup-person.done .standup-person-status {
+            background: #22c55e33;
+            color: #4ade80;
+        }
+
+        .standup-person-detail {
+            display: none;
+            padding: 0 0.75rem 0.75rem;
+        }
+
+        .standup-person.active .standup-person-detail {
+            display: block;
+        }
+
+        .standup-detail-row {
+            font-size: 0.8rem;
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+
+        .standup-detail-label {
+            color: #555;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .standup-detail-value {
+            color: #bbb;
+            margin-top: 0.1rem;
+        }
+
+        .standup-done-btn {
+            margin-top: 0.5rem;
+            padding: 0.4rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            background: #22c55e;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .standup-done-btn:hover {
+            opacity: 0.85;
+        }
+
+        .standup-empty {
+            font-size: 0.85rem;
+            color: #444;
+            font-style: italic;
+        }
+
+
+        @media (max-width: 900px) {
+            .page-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: static;
+                order: -1;
+            }
+        }
+
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .name-picker {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .name-chip {
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
+            border: 2px solid #333;
+            background: #1a1a2e;
+            color: #ccc;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .name-chip:hover {
+            border-color: #667eea;
+            background: #2a2a4e;
+        }
+
+        .name-chip.selected {
+            border-color: #764ba2;
+            background: #2a2a4e;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(118, 75, 162, 0.3);
+        }
+
+        .section-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+            margin-bottom: 0.75rem;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .emoji-btn {
+            font-size: 2rem;
+            padding: 0.75rem;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            background: #1a1a2e;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .emoji-btn:hover {
+            background: #2a2a4e;
+            transform: scale(1.1);
+            border-color: #667eea;
+        }
+
+        .emoji-btn.selected {
+            background: #2a2a4e;
+            border-color: #764ba2;
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(118, 75, 162, 0.3);
+        }
+
+        .lucky-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .lucky-btn {
+            font-size: 3rem;
+            padding: 1rem 2rem;
+            border: 2px dashed #444;
+            border-radius: 16px;
+            background: #1a1a2e;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lucky-btn:hover {
+            border-color: #667eea;
+            background: #1e1e3a;
+            transform: scale(1.05);
+        }
+
+        .lucky-btn.spinning {
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg) scale(1.05); }
+            25% { transform: rotate(-10deg) scale(1.1); }
+            75% { transform: rotate(10deg) scale(1.1); }
+        }
+
+        .lucky-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 0.5rem;
+        }
+
+        .lucky-result {
+            font-size: 3rem;
+            margin-top: 1rem;
+            min-height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .lucky-result.visible {
+            opacity: 1;
+        }
+
+        .lucky-result img {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 2rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .feed {
+            border-top: 1px solid #222;
+            padding-top: 1.5rem;
+        }
+
+        .feed h2 {
+            font-size: 1rem;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feed-emoji {
+            font-size: 2rem;
+            min-width: 3rem;
+            text-align: center;
+        }
+
+        .feed-emoji img {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .feed-name {
+            font-weight: 600;
+            color: #ccc;
+        }
+
+        .feed-time {
+            font-size: 0.75rem;
+            color: #555;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .feed-empty {
+            text-align: center;
+            color: #444;
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        .tab-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: #1a1a2e;
+            padding: 0.25rem;
+            border-radius: 12px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 0.6rem;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: #888;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #2a2a4e;
+            color: #fff;
+        }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        .gif-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .gif-item {
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+            aspect-ratio: 1;
+        }
+
+        .gif-item:hover {
+            border-color: #667eea;
+            transform: scale(1.03);
+        }
+
+        .gif-item.selected {
+            border-color: #764ba2;
+            box-shadow: 0 0 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .gif-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .word-chip {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            color: #ccc;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .word-chip:hover {
+            border-color: #667eea;
+            background: #2a2a4e;
+        }
+
+        .word-chip.selected {
+            border-color: #764ba2;
+            background: #2a2a4e;
+            color: #fff;
+        }
+
+        .freeform-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .freeform-section textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid #333;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            resize: none;
+            transition: border-color 0.2s;
+            min-height: 60px;
+        }
+
+        .freeform-section textarea:focus {
+            border-color: #667eea;
+        }
+
+        .freeform-section textarea::placeholder {
+            color: #555;
+        }
+
+        .freeform-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .feed-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: #1a1a2e;
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .feed-details {
+            padding-left: 0.5rem;
+        }
+
+        .feed-details p {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 0.25rem;
+            line-height: 1.4;
+        }
+
+        .feed-details .feed-detail-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #555;
+            letter-spacing: 0.03em;
+        }
+
+        .feed-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feed-action-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #aaa;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .feed-action-btn:hover {
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .feed-action-btn.danger:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .feed-item-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .feed-item-btn {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #555;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .feed-item-btn:hover {
+            background: #2a2a4e;
+            color: #ccc;
+        }
+
+        .feed-item-btn.delete:hover {
+            color: #ef4444;
+        }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .edit-modal.visible {
+            display: flex;
+        }
+
+        .edit-modal-content {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .edit-modal-content h3 {
+            margin-bottom: 1rem;
+            color: #ccc;
+        }
+
+        .edit-modal-content .freeform-section {
+            margin-bottom: 1rem;
+        }
+
+        .edit-modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .edit-modal-actions button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .edit-save-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .edit-cancel-btn {
+            background: #2a2a4e;
+            color: #aaa;
+        }
+
+        .export-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #22c55e;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: transform 0.3s ease;
+            z-index: 200;
+        }
+
+        .export-toast.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .feed-tab-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1rem;
+            background: #1a1a2e;
+            padding: 0.2rem;
+            border-radius: 10px;
+        }
+
+        .feed-tab {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #666;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .feed-tab.active {
+            background: #2a2a4e;
+            color: #fff;
+        }
+
+        .archive-section { display: none; }
+        .archive-section.visible { display: block; }
+
+        .archive-date-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .archive-date-header {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #555;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid #222;
+        }
+    </style>
 </head>
 <body>
+    <div class="page-layout">
+    <div class="container">
+        <h1>vibe check</h1>
+        <p class="subtitle">how are you showing up today?</p>
 
-<h1>Vibes</h1>
-<p class="subtitle">APAC PMM weekly pulse</p>
-<p class="week-label" id="weekLabel"></p>
+        <div class="name-picker" id="namePicker"></div>
 
-<div class="team-grid" id="teamGrid"></div>
-
-<div class="actions">
-  <button class="log-btn" onclick="logVibes()">Log vibes & copy to clipboard</button>
-  <button class="reset-btn" onclick="resetAll()">Reset all (new week)</button>
-</div>
-
-<div class="history" id="historySection">
-  <h2>History</h2>
-  <div id="historyList"></div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<div class="emoji-picker-overlay" id="emojiOverlay" onclick="closeEmojiPicker(event)">
-  <div class="emoji-grid" id="emojiGrid"></div>
-</div>
-
-<script>
-const SCRIPT_URL = 'https://script.google.com/a/macros/stripe.com/s/AKfycbxrTgdwlufPu8l-2IY0CVsiGQhmXcYTqSDxyKgQh6YnVyxdFAr4tdzU3YPKFGYPWBUD/exec';
-
-const TEAM = [
-  { id: 'ben', name: 'Ben', market: 'APAC Lead' },
-  { id: 'karina', name: 'Karina', market: 'AUNZ' },
-  { id: 'terrence', name: 'Terrence', market: 'GCN / SEA' },
-  { id: 'jun', name: 'Jun', market: 'Japan' },
-  { id: 'aditya', name: 'Aditya', market: 'India' },
-];
-
-const EMOJIS = [
-  '🔥','💪','🚀','✨','😎','🎯','💡','🙌',
-  '😊','🤙','☀️','🌊','🎶','🍜','🏃','⚡',
-  '😤','💀','🫠','😵‍💫','🥱','😬','🤯','🫡',
-  '🤔','👀','🧘','🌧️','☕','🍻','❤️','🎉',
-  '📈','📉','⏳','🛑','🏔️','🌱','🪨','💎',
-];
-
-let currentPicker = null;
-let localState = {};
-let allData = [];
-
-function getWeekNumber() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  return Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
-}
-
-function getWeekKey() {
-  const now = new Date();
-  return `${now.getFullYear()}-W${String(getWeekNumber()).padStart(2, '0')}`;
-}
-
-function getDateStr() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function getWeekLabel() {
-  const now = new Date();
-  return `Week ${getWeekNumber()} — ${now.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
-}
-
-function showToast(msg) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 3000);
-}
-
-// ---- Data ----
-
-async function fetchVibes() {
-  try {
-    const res = await fetch(SCRIPT_URL);
-    allData = await res.json();
-    const week = getWeekKey();
-    localState = {};
-    allData.filter(r => r.week === week).forEach(r => {
-      const member = TEAM.find(m => m.name === r.name);
-      if (member && r.emoji) localState[member.id] = { emoji: r.emoji, song: r.song };
-    });
-  } catch (e) {
-    const saved = localStorage.getItem('vibes_local');
-    if (saved) localState = JSON.parse(saved);
-  }
-  render();
-}
-
-async function saveVibe(memberId) {
-  const member = TEAM.find(m => m.id === memberId);
-  const data = localState[memberId] || {};
-  if (!data.emoji) return;
-
-  localStorage.setItem('vibes_local', JSON.stringify(localState));
-
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'save',
-        week: getWeekKey(),
-        date: getDateStr(),
-        name: member.name,
-        emoji: data.emoji,
-        song: data.song || '',
-      }),
-    });
-  } catch (e) {}
-}
-
-async function clearVibe(memberId) {
-  const member = TEAM.find(m => m.id === memberId);
-  delete localState[memberId];
-  localStorage.setItem('vibes_local', JSON.stringify(localState));
-  render();
-
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'clear', week: getWeekKey(), name: member.name }),
-    });
-  } catch (e) {}
-}
-
-// ---- Render ----
-
-function render() {
-  const grid = document.getElementById('teamGrid');
-  grid.innerHTML = '';
-
-  TEAM.forEach(member => {
-    const data = localState[member.id] || {};
-    const hasVibe = !!data.emoji;
-    const card = document.createElement('div');
-    card.className = `card ${hasVibe ? 'has-vibe' : ''}`;
-    card.innerHTML = `
-      <div class="card-header">
-        <div>
-          <div class="card-name">${member.name}</div>
-          <div class="card-market">${member.market}</div>
+        <div class="tab-bar">
+            <button class="tab active" data-tab="emoji">Emoji</button>
+            <button class="tab" data-tab="word">Word</button>
+            <button class="tab" data-tab="lucky">🤷 Lucky</button>
         </div>
-        <button class="clear-btn" onclick="clearVibe('${member.id}')">Clear</button>
-      </div>
-      <div class="emoji-pick ${hasVibe ? '' : 'empty'}" onclick="openEmojiPicker('${member.id}')">
-        ${hasVibe ? data.emoji : 'Pick emoji'}
-      </div>
-      <input class="song-input" type="text" placeholder="Song / track name"
-        value="${data.song || ''}"
-        onchange="updateSong('${member.id}', this.value)"
-        onblur="saveVibe('${member.id}')">
-    `;
-    grid.appendChild(card);
-  });
 
-  renderHistory();
-}
+        <!-- Emoji Panel -->
+        <div class="panel active" id="panel-emoji">
+            <div class="section-label">Pick your vibe</div>
+            <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
 
-function renderHistory() {
-  const container = document.getElementById('historyList');
-  const currentWeek = getWeekKey();
+        <!-- Word Panel -->
+        <div class="panel" id="panel-word">
+            <div class="section-label">One word for today</div>
+            <div class="word-cloud" id="wordCloud"></div>
+        </div>
 
-  const weeks = {};
-  allData.forEach(row => {
-    if (row.week === currentWeek || !row.emoji) return;
-    if (!weeks[row.week]) weeks[row.week] = { date: row.date, vibes: [] };
-    weeks[row.week].vibes.push(row);
-  });
+        <!-- Lucky Panel -->
+        <div class="panel" id="panel-lucky">
+            <div class="lucky-section">
+                <button class="lucky-btn" id="luckyBtn">🤷</button>
+                <p class="lucky-label">tap for a random vibe assignment</p>
+                <div class="lucky-result" id="luckyResult"></div>
+            </div>
+        </div>
 
-  const sortedWeeks = Object.keys(weeks).sort().reverse().slice(0, 12);
+        <div class="freeform-section">
+            <p class="freeform-label">how are you feeling today?</p>
+            <textarea id="feelingInput" placeholder="in a sentence or less..." maxlength="200" rows="2"></textarea>
+        </div>
 
-  if (sortedWeeks.length === 0) {
-    container.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem;">No past entries yet.</p>';
-    return;
-  }
+        <div class="freeform-section">
+            <p class="freeform-label">one thing you're looking forward to?</p>
+            <textarea id="lookingForwardInput" placeholder="big or small, anything counts..." maxlength="200" rows="2"></textarea>
+        </div>
 
-  container.innerHTML = sortedWeeks.map(w => `
-    <div class="history-entry">
-      <div class="history-date">${w} (${weeks[w].date})</div>
-      <div class="history-vibes">
-        ${weeks[w].vibes.map(v =>
-          `<span class="history-vibe"><span class="emoji">${v.emoji}</span> ${v.name}${v.song ? ' — ' + v.song : ''}</span>`
-        ).join('')}
-      </div>
+        <div class="freeform-section">
+            <p class="freeform-label">something you were proud of this week?</p>
+            <textarea id="proudOfInput" placeholder="a win, a moment, a thing you shipped..." maxlength="200" rows="2"></textarea>
+        </div>
+
+        <div class="freeform-section">
+            <p class="freeform-label">anything we need to talk about today?</p>
+            <textarea id="talkAboutInput" placeholder="blockers, ideas, stuff on your mind..." maxlength="200" rows="2"></textarea>
+        </div>
+
+        <button class="submit-btn" id="submitBtn" disabled>check in</button>
+
+        <div class="feed">
+            <div class="feed-tab-bar">
+                <button class="feed-tab active" id="feedTabToday">today</button>
+                <button class="feed-tab" id="feedTabArchive">archive</button>
+            </div>
+            <div class="feed-actions">
+                <button class="feed-action-btn" id="exportBtn">📋 log this week</button>
+                <button class="feed-action-btn danger" id="resetBtn">🗑 reset</button>
+            </div>
+            <div id="feedToday">
+                <div id="feedList">
+                    <p class="feed-empty">no check-ins yet — be the first!</p>
+                </div>
+            </div>
+            <div class="archive-section" id="feedArchive"></div>
+        </div>
     </div>
-  `).join('');
-}
 
-// ---- Interactions ----
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-card">
+            <h3>today's standup</h3>
+            <p class="sidebar-subtitle">click a name to present</p>
+            <div id="standupQueue"></div>
+        </div>
 
-function openEmojiPicker(memberId) {
-  currentPicker = memberId;
-  const grid = document.getElementById('emojiGrid');
-  grid.innerHTML = EMOJIS.map(e =>
-    `<div class="emoji-option" onclick="pickEmoji('${e}')">${e}</div>`
-  ).join('');
-  document.getElementById('emojiOverlay').classList.add('open');
-}
+        <div class="sidebar-card">
+            <h3>to discuss</h3>
+            <div id="discussList">
+                <p class="discuss-empty">nothing flagged yet</p>
+            </div>
+        </div>
+    </div>
 
-function closeEmojiPicker(e) {
-  if (e.target === document.getElementById('emojiOverlay')) {
-    document.getElementById('emojiOverlay').classList.remove('open');
-    currentPicker = null;
-  }
-}
+    </div><!-- end page-layout -->
 
-function pickEmoji(emoji) {
-  if (!currentPicker) return;
-  if (!localState[currentPicker]) localState[currentPicker] = {};
-  localState[currentPicker].emoji = emoji;
-  const memberId = currentPicker;
-  document.getElementById('emojiOverlay').classList.remove('open');
-  currentPicker = null;
-  render();
-  saveVibe(memberId);
-}
+    <!-- Edit Modal -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-modal-content">
+            <h3>edit check-in</h3>
+            <div class="freeform-section">
+                <p class="freeform-label">how are you feeling today?</p>
+                <textarea id="editFeeling" maxlength="200" rows="2"></textarea>
+            </div>
+            <div class="freeform-section">
+                <p class="freeform-label">one thing you're looking forward to?</p>
+                <textarea id="editLookingForward" maxlength="200" rows="2"></textarea>
+            </div>
+            <div class="freeform-section">
+                <p class="freeform-label">something you were proud of this week?</p>
+                <textarea id="editProudOf" maxlength="200" rows="2"></textarea>
+            </div>
+            <div class="freeform-section">
+                <p class="freeform-label">anything we need to talk about today?</p>
+                <textarea id="editTalkAbout" maxlength="200" rows="2"></textarea>
+            </div>
+            <div class="edit-modal-actions">
+                <button class="edit-cancel-btn" id="editCancelBtn">cancel</button>
+                <button class="edit-save-btn" id="editSaveBtn">save</button>
+            </div>
+        </div>
+    </div>
 
-function updateSong(memberId, value) {
-  if (!localState[memberId]) localState[memberId] = {};
-  localState[memberId].song = value;
-  localStorage.setItem('vibes_local', JSON.stringify(localState));
-}
+    <!-- Toast -->
+    <div class="export-toast" id="exportToast">copied to clipboard!</div>
 
-function resetAll() {
-  if (!confirm('Start fresh for a new week? (History stays in the sheet)')) return;
-  localState = {};
-  localStorage.removeItem('vibes_local');
-  render();
-}
+    <script>
+        const EMOJIS = [
+            '🔥', '😴', '🚀', '😤', '🧘', '🎉',
+            '💀', '☕', '🧠', '💪', '😅', '🫠',
+            '✨', '🌊', '🎯', '🤯', '😎', '🥲',
+            '🫡', '🦾', '🌈', '😬', '🍕', '⚡'
+        ];
 
-function logVibes() {
-  const date = getDateStr();
-  const week = getWeekKey();
+        const WORDS = [
+            'caffeinated', 'chaotic', 'locked in', 'vibing', 'anxious',
+            'grateful', 'scattered', 'creative', 'exhausted', 'hopeful',
+            'curious', 'overwhelmed', 'pumped', 'meh', 'zen',
+            'feral', 'focused', 'cozy', 'restless', 'unstoppable'
+        ];
 
-  let md = `## ${date} (${week})\n\n`;
-  md += `| Name | Vibe | Song |\n`;
-  md += `|---|---|---|\n`;
+        const LUCKY_EMOJIS = [
+            '🦑', '🌋', '🪩', '🫃', '🦤', '🧃', '🪬', '🫧',
+            '🦔', '🍄', '👾', '🪸', '🫠', '🌪️', '🧊', '🪅',
+            '🦩', '🫁', '🪐', '🧿', '🎪', '🦚', '🪼', '🫎'
+        ];
 
-  TEAM.forEach(member => {
-    const data = localState[member.id] || {};
-    md += `| ${member.name} | ${data.emoji || '—'} | ${data.song || '—'} |\n`;
-  });
+        const LUCKY_PHRASES = [
+            'chaos goblin energy', 'main character syndrome',
+            'just a lil guy', 'unhinged but productive',
+            'running on spite', 'delulu is the solulu',
+            'professionally winging it', 'feral but friendly',
+            'chaotic neutral', 'built different today',
+            'surviving purely on vibes', 'one coffee away from greatness'
+        ];
 
-  md += `\n---\n\n`;
+        const TEAM = ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
 
-  navigator.clipboard.writeText(md).then(() => {
-    showToast('Copied — paste into vibes-log.md');
-  });
-}
+        let state = { selection: null, type: null };
+        let selectedName = localStorage.getItem('vibecheck-name') || null;
+        let feed = JSON.parse(localStorage.getItem('vibecheck-feed') || '[]');
 
-// ---- Init ----
-document.getElementById('weekLabel').textContent = getWeekLabel();
-fetchVibes();
-setInterval(fetchVibes, 30000);
-</script>
+        // Keep all entries (for weekly export), but display today only
+        const today = new Date().toDateString();
+        let todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+
+        // Init name picker
+        const namePicker = document.getElementById('namePicker');
+        TEAM.forEach(name => {
+            const chip = document.createElement('button');
+            chip.className = 'name-chip' + (selectedName === name ? ' selected' : '');
+            chip.textContent = name;
+            chip.onclick = () => {
+                document.querySelectorAll('.name-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+                selectedName = name;
+                localStorage.setItem('vibecheck-name', name);
+                updateSubmitBtn();
+            };
+            namePicker.appendChild(chip);
+        });
+
+        // Init emoji grid
+        const emojiGrid = document.getElementById('emojiGrid');
+        EMOJIS.forEach(emoji => {
+            const btn = document.createElement('button');
+            btn.className = 'emoji-btn';
+            btn.textContent = emoji;
+            btn.onclick = () => selectEmoji(btn, emoji);
+            emojiGrid.appendChild(btn);
+        });
+
+        // Init word cloud
+        const wordCloud = document.getElementById('wordCloud');
+        WORDS.forEach(word => {
+            const chip = document.createElement('button');
+            chip.className = 'word-chip';
+            chip.textContent = word;
+            chip.onclick = () => selectWord(chip, word);
+            wordCloud.appendChild(chip);
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
+                // Clear selection when switching tabs
+                clearSelection();
+            };
+        });
+
+        // Lucky button
+        const luckyBtn = document.getElementById('luckyBtn');
+        const luckyResult = document.getElementById('luckyResult');
+
+        luckyBtn.onclick = () => {
+            luckyBtn.classList.add('spinning');
+            setTimeout(() => luckyBtn.classList.remove('spinning'), 400);
+
+            const roll = Math.random();
+            let result;
+
+            if (roll < 0.5) {
+                result = { type: 'emoji', value: LUCKY_EMOJIS[Math.floor(Math.random() * LUCKY_EMOJIS.length)] };
+                luckyResult.innerHTML = result.value;
+            } else {
+                result = { type: 'phrase', value: LUCKY_PHRASES[Math.floor(Math.random() * LUCKY_PHRASES.length)] };
+                luckyResult.innerHTML = `<span style="font-size:1.2rem;color:#ccc;font-style:italic">"${result.value}"</span>`;
+            }
+
+            luckyResult.classList.add('visible');
+            state = { selection: result.value, type: result.type === 'emoji' ? 'emoji' : 'word' };
+            updateSubmitBtn();
+        };
+
+        function selectEmoji(btn, emoji) {
+            document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            state = { selection: emoji, type: 'emoji' };
+            updateSubmitBtn();
+        }
+
+        function selectWord(chip, word) {
+            document.querySelectorAll('.word-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            state = { selection: word, type: 'word' };
+            updateSubmitBtn();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.emoji-btn, .word-chip').forEach(el => el.classList.remove('selected'));
+            luckyResult.classList.remove('visible');
+            state = { selection: null, type: null };
+            updateSubmitBtn();
+        }
+
+        function updateSubmitBtn() {
+            document.getElementById('submitBtn').disabled = !state.selection || !selectedName;
+        }
+
+        // Submit
+        document.getElementById('submitBtn').onclick = () => {
+            if (!selectedName || !state.selection) return;
+            const name = selectedName;
+
+            const feeling = document.getElementById('feelingInput').value.trim();
+            const lookingForward = document.getElementById('lookingForwardInput').value.trim();
+            const proudOf = document.getElementById('proudOfInput').value.trim();
+            const talkAbout = document.getElementById('talkAboutInput').value.trim();
+
+            const entry = {
+                name,
+                vibe: state.selection,
+                type: state.type,
+                feeling: feeling || null,
+                lookingForward: lookingForward || null,
+                proudOf: proudOf || null,
+                talkAbout: talkAbout || null,
+                time: new Date().toISOString()
+            };
+
+            feed.unshift(entry);
+            todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+            localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
+            renderFeed();
+            clearSelection();
+            document.getElementById('feelingInput').value = '';
+            document.getElementById('lookingForwardInput').value = '';
+            document.getElementById('proudOfInput').value = '';
+            document.getElementById('talkAboutInput').value = '';
+
+            // Brief success flash
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = '✓ checked in!';
+            btn.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+            setTimeout(() => {
+                btn.textContent = 'check in';
+                btn.style.background = '';
+            }, 2000);
+        };
+
+        function renderFeed() {
+            const feedList = document.getElementById('feedList');
+            if (todayFeed.length === 0) {
+                feedList.innerHTML = '<p class="feed-empty">no check-ins yet — be the first!</p>';
+                return;
+            }
+
+            feedList.innerHTML = todayFeed.map((item, idx) => {
+                const time = new Date(item.time);
+                const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const vibeDisplay = item.type === 'emoji'
+                    ? `<span>${item.vibe}</span>`
+                    : `<span style="font-size:0.9rem;font-style:italic">${item.vibe}</span>`;
+
+                const feedIdx = feed.indexOf(item);
+
+                let detailsHtml = '';
+                if (item.feeling || item.lookingForward || item.proudOf || item.talkAbout) {
+                    detailsHtml = '<div class="feed-details">';
+                    if (item.feeling) {
+                        detailsHtml += `<span class="feed-detail-label">feeling:</span><p>${escapeHtml(item.feeling)}</p>`;
+                    }
+                    if (item.lookingForward) {
+                        detailsHtml += `<span class="feed-detail-label">looking forward to:</span><p>${escapeHtml(item.lookingForward)}</p>`;
+                    }
+                    if (item.proudOf) {
+                        detailsHtml += `<span class="feed-detail-label">proud of:</span><p>${escapeHtml(item.proudOf)}</p>`;
+                    }
+                    if (item.talkAbout) {
+                        detailsHtml += `<span class="feed-detail-label">need to discuss:</span><p>${escapeHtml(item.talkAbout)}</p>`;
+                    }
+                    detailsHtml += '</div>';
+                }
+
+                return `
+                    <div class="feed-item">
+                        <div class="feed-header">
+                            <div class="feed-emoji">${vibeDisplay}</div>
+                            <div class="feed-name">${escapeHtml(item.name)}</div>
+                            <div class="feed-item-actions">
+                                <button class="feed-item-btn" onclick="editEntry(${feedIdx})">edit</button>
+                                <button class="feed-item-btn delete" onclick="deleteEntry(${feedIdx})">x</button>
+                            </div>
+                            <div class="feed-time">${timeStr}</div>
+                        </div>
+                        ${detailsHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Edit entry
+        let editingIdx = null;
+
+        function editEntry(idx) {
+            editingIdx = idx;
+            const item = feed[idx];
+            document.getElementById('editFeeling').value = item.feeling || '';
+            document.getElementById('editLookingForward').value = item.lookingForward || '';
+            document.getElementById('editProudOf').value = item.proudOf || '';
+            document.getElementById('editTalkAbout').value = item.talkAbout || '';
+            document.getElementById('editModal').classList.add('visible');
+        }
+
+        document.getElementById('editSaveBtn').onclick = () => {
+            if (editingIdx === null) return;
+            feed[editingIdx].feeling = document.getElementById('editFeeling').value.trim() || null;
+            feed[editingIdx].lookingForward = document.getElementById('editLookingForward').value.trim() || null;
+            feed[editingIdx].proudOf = document.getElementById('editProudOf').value.trim() || null;
+            feed[editingIdx].talkAbout = document.getElementById('editTalkAbout').value.trim() || null;
+            localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
+            todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+            renderFeed();
+            renderArchive();
+            document.getElementById('editModal').classList.remove('visible');
+            editingIdx = null;
+        };
+
+        document.getElementById('editCancelBtn').onclick = () => {
+            document.getElementById('editModal').classList.remove('visible');
+            editingIdx = null;
+        };
+
+        document.getElementById('editModal').onclick = (e) => {
+            if (e.target === document.getElementById('editModal')) {
+                document.getElementById('editModal').classList.remove('visible');
+                editingIdx = null;
+            }
+        };
+
+        // Delete entry
+        function deleteEntry(idx) {
+            if (!confirm('remove this check-in?')) return;
+            feed.splice(idx, 1);
+            localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
+            todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+            renderFeed();
+            renderArchive();
+        }
+
+        // Reset all
+        document.getElementById('resetBtn').onclick = () => {
+            if (!confirm("clear all check-ins? this can't be undone.")) return;
+            feed = [];
+            todayFeed = [];
+            standupDone = [];
+            activeStandup = null;
+            localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
+            localStorage.removeItem('vibecheck-standup-done');
+            renderFeed();
+        };
+
+        // Export week
+        document.getElementById('exportBtn').onclick = () => {
+            const now = new Date();
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const weekEntries = feed.filter(item => new Date(item.time) >= weekAgo);
+
+            if (weekEntries.length === 0) {
+                alert('no entries from this week to export');
+                return;
+            }
+
+            let markdown = `# Team Vibe Check — Week of ${weekAgo.toLocaleDateString()} to ${now.toLocaleDateString()}\n\n`;
+
+            const byDate = {};
+            weekEntries.forEach(item => {
+                const dateKey = new Date(item.time).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                if (!byDate[dateKey]) byDate[dateKey] = [];
+                byDate[dateKey].push(item);
+            });
+
+            Object.entries(byDate).forEach(([date, entries]) => {
+                markdown += `## ${date}\n\n`;
+                entries.forEach(item => {
+                    const vibe = item.type === 'emoji' ? item.vibe : `"${item.vibe}"`;
+                    markdown += `**${item.name}** — ${vibe}\n`;
+                    if (item.feeling) markdown += `- Feeling: ${item.feeling}\n`;
+                    if (item.lookingForward) markdown += `- Looking forward to: ${item.lookingForward}\n`;
+                    if (item.proudOf) markdown += `- Proud of: ${item.proudOf}\n`;
+                    if (item.talkAbout) markdown += `- Need to discuss: ${item.talkAbout}\n`;
+                    markdown += '\n';
+                });
+            });
+
+            navigator.clipboard.writeText(markdown).then(() => {
+                const toast = document.getElementById('exportToast');
+                toast.classList.add('visible');
+                setTimeout(() => toast.classList.remove('visible'), 2500);
+            }).catch(() => {
+                const blob = new Blob([markdown], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vibe-check-week-${now.toISOString().slice(0,10)}.md`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        };
+
+        // Feed tabs (today / archive)
+        document.getElementById('feedTabToday').onclick = () => {
+            document.getElementById('feedTabToday').classList.add('active');
+            document.getElementById('feedTabArchive').classList.remove('active');
+            document.getElementById('feedToday').style.display = 'block';
+            document.getElementById('feedArchive').classList.remove('visible');
+        };
+
+        document.getElementById('feedTabArchive').onclick = () => {
+            document.getElementById('feedTabArchive').classList.add('active');
+            document.getElementById('feedTabToday').classList.remove('active');
+            document.getElementById('feedToday').style.display = 'none';
+            document.getElementById('feedArchive').classList.add('visible');
+            renderArchive();
+        };
+
+        function renderArchive() {
+            const archiveEl = document.getElementById('feedArchive');
+            const pastEntries = feed.filter(item => new Date(item.time).toDateString() !== today);
+
+            if (pastEntries.length === 0) {
+                archiveEl.innerHTML = '<p class="feed-empty">no past check-ins yet</p>';
+                return;
+            }
+
+            const byDate = {};
+            pastEntries.forEach(item => {
+                const dateKey = new Date(item.time).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                if (!byDate[dateKey]) byDate[dateKey] = [];
+                byDate[dateKey].push(item);
+            });
+
+            let html = '';
+            Object.entries(byDate).forEach(([date, entries]) => {
+                html += `<div class="archive-date-group"><div class="archive-date-header">${date}</div>`;
+                entries.forEach(item => {
+                    const time = new Date(item.time);
+                    const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const vibeDisplay = item.type === 'emoji'
+                        ? `<span>${item.vibe}</span>`
+                        : `<span style="font-size:0.9rem;font-style:italic">${item.vibe}</span>`;
+
+                    const feedIdx = feed.indexOf(item);
+
+                    let detailsHtml = '';
+                    if (item.feeling || item.lookingForward || item.proudOf || item.talkAbout) {
+                        detailsHtml = '<div class="feed-details">';
+                        if (item.feeling) detailsHtml += `<span class="feed-detail-label">feeling:</span><p>${escapeHtml(item.feeling)}</p>`;
+                        if (item.lookingForward) detailsHtml += `<span class="feed-detail-label">looking forward to:</span><p>${escapeHtml(item.lookingForward)}</p>`;
+                        if (item.proudOf) detailsHtml += `<span class="feed-detail-label">proud of:</span><p>${escapeHtml(item.proudOf)}</p>`;
+                        if (item.talkAbout) detailsHtml += `<span class="feed-detail-label">need to discuss:</span><p>${escapeHtml(item.talkAbout)}</p>`;
+                        detailsHtml += '</div>';
+                    }
+
+                    html += `
+                        <div class="feed-item">
+                            <div class="feed-header">
+                                <div class="feed-emoji">${vibeDisplay}</div>
+                                <div class="feed-name">${escapeHtml(item.name)}</div>
+                                <div class="feed-item-actions">
+                                    <button class="feed-item-btn" onclick="editEntry(${feedIdx})">edit</button>
+                                    <button class="feed-item-btn delete" onclick="deleteEntry(${feedIdx})">x</button>
+                                </div>
+                                <div class="feed-time">${timeStr}</div>
+                            </div>
+                            ${detailsHtml}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            });
+
+            archiveEl.innerHTML = html;
+        }
+
+        // Sidebar: standup queue
+        let standupDone = JSON.parse(localStorage.getItem('vibecheck-standup-done') || '[]');
+        let activeStandup = null;
+
+        function renderStandupQueue() {
+            const queueEl = document.getElementById('standupQueue');
+
+            if (todayFeed.length === 0) {
+                queueEl.innerHTML = '<p class="standup-empty">waiting for check-ins...</p>';
+                return;
+            }
+
+            // Dedupe by name (latest check-in per person)
+            const byName = {};
+            todayFeed.forEach(item => {
+                if (!byName[item.name]) byName[item.name] = item;
+            });
+            const people = Object.values(byName);
+
+            queueEl.innerHTML = people.map(item => {
+                const isDone = standupDone.includes(item.name);
+                const isActive = activeStandup === item.name;
+                const cls = isDone ? 'done' : (isActive ? 'active' : '');
+                const status = isDone ? 'done' : (isActive ? 'speaking' : 'up next');
+
+                const vibeDisplay = item.type === 'emoji' ? item.vibe : `"${item.vibe}"`;
+
+                let detailHtml = '';
+                if (item.feeling) detailHtml += `<div class="standup-detail-row"><div class="standup-detail-label">feeling</div><div class="standup-detail-value">${escapeHtml(item.feeling)}</div></div>`;
+                if (item.lookingForward) detailHtml += `<div class="standup-detail-row"><div class="standup-detail-label">looking forward to</div><div class="standup-detail-value">${escapeHtml(item.lookingForward)}</div></div>`;
+                if (item.proudOf) detailHtml += `<div class="standup-detail-row"><div class="standup-detail-label">proud of</div><div class="standup-detail-value">${escapeHtml(item.proudOf)}</div></div>`;
+                if (item.talkAbout) detailHtml += `<div class="standup-detail-row"><div class="standup-detail-label">wants to discuss</div><div class="standup-detail-value">${escapeHtml(item.talkAbout)}</div></div>`;
+
+                return `
+                    <div class="standup-person ${cls}" data-name="${escapeHtml(item.name)}">
+                        <div class="standup-person-header" onclick="toggleStandup('${escapeHtml(item.name)}')">
+                            <span class="standup-person-vibe">${item.type === 'emoji' ? item.vibe : '💬'}</span>
+                            <span class="standup-person-name">${escapeHtml(item.name)}</span>
+                            <span class="standup-person-status">${status}</span>
+                        </div>
+                        <div class="standup-person-detail">
+                            ${detailHtml || '<div class="standup-detail-row"><div class="standup-detail-value" style="color:#555">no details added</div></div>'}
+                            <button class="standup-done-btn" onclick="markDone('${escapeHtml(item.name)}')">mark done ✓</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleStandup(name) {
+            if (standupDone.includes(name)) return;
+            activeStandup = activeStandup === name ? null : name;
+            renderStandupQueue();
+        }
+
+        function markDone(name) {
+            if (!standupDone.includes(name)) {
+                standupDone.push(name);
+                localStorage.setItem('vibecheck-standup-done', JSON.stringify(standupDone));
+            }
+            activeStandup = null;
+            renderStandupQueue();
+        }
+
+        // Sidebar: discussion items from check-ins
+        function renderDiscussList() {
+            const discussEl = document.getElementById('discussList');
+            const discussItems = todayFeed.filter(item => item.talkAbout);
+
+            if (discussItems.length === 0) {
+                discussEl.innerHTML = '<p class="discuss-empty">nothing flagged yet</p>';
+                return;
+            }
+
+            discussEl.innerHTML = '<ul class="discuss-list">' + discussItems.map(item => `
+                <li class="discuss-item">
+                    <span class="discuss-item-author">${escapeHtml(item.name)}</span>
+                    <span class="discuss-item-text">${escapeHtml(item.talkAbout)}</span>
+                </li>
+            `).join('') + '</ul>';
+        }
+
+        // Hook sidebar renders into feed updates
+        const _originalRenderFeed = renderFeed;
+        renderFeed = function() {
+            _originalRenderFeed();
+            renderDiscussList();
+            renderStandupQueue();
+        };
+
+        renderFeed();
+    </script>
 </body>
 </html>
