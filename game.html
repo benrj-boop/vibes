@@ -18,8 +18,8 @@
         }
         #gameContainer {
             position: relative;
-            width: 768px;
-            height: 576px;
+            width: 960px;
+            height: 640px;
             border: 6px solid #222;
             border-radius: 8px;
             background: #000;
@@ -65,7 +65,7 @@
 <body>
     <a href="index.html" class="mode-toggle">[ classic mode ]</a>
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="256" height="192"></canvas>
+        <canvas id="gameCanvas" width="480" height="320"></canvas>
     </div>
     <p class="controls-hint">ARROWS/WASD: move | SPACE/ENTER: interact | explore the island!</p>
     <input type="text" id="hiddenInput" maxlength="140" autocomplete="off" />
@@ -76,11 +76,11 @@
 // Single-file HTML game — GBC era aesthetics
 // ============================================================
 
-const CANVAS_W = 256;
-const CANVAS_H = 192;
-const TILE = 16;
-const COLS = CANVAS_W / TILE; // 16
-const ROWS = CANVAS_H / TILE; // 12
+const CANVAS_W = 480;
+const CANVAS_H = 320;
+const TILE = 24;
+const COLS = CANVAS_W / TILE; // 20
+const ROWS = Math.floor(CANVAS_H / TILE); // 13 (320/24 = 13.33, use 13 rows)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -125,7 +125,7 @@ const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','�
 // ============================================================
 let state = 'title'; // title, nameSelect, overworld, dialogue, encounter, battle, complete
 let playerName = null;
-let player = { x: 7, y: 8, px: 7*TILE, py: 8*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
+let player = { x: 9, y: 10, px: 9*TILE, py: 10*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
 let keys = {};
 let keysJustPressed = {};
 let dialogueLines = [];
@@ -152,39 +152,40 @@ const DIR_DX = [0, 0, -1, 1];
 const DIR_DY = [1, -1, 0, 0];
 
 // ============================================================
-// MAP DATA (16x12 tiles)
+// MAP DATA (20x13 tiles)
 // 0=grass, 1=path, 2=tree, 3=water, 4=flower, 5=building, 6=sign, 7=fence
 // ============================================================
 const MAP = [
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
-    [2,0,0,4,0,0,1,1,1,1,0,0,4,0,0,2],
-    [2,0,0,0,0,0,1,0,0,1,0,0,0,0,0,2],
-    [2,4,0,0,0,0,1,0,0,1,0,0,0,0,4,2],
-    [2,0,0,0,2,0,1,0,0,1,0,2,0,0,0,2],
-    [2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
-    [2,0,0,0,0,0,1,3,3,1,0,0,0,0,0,2],
-    [2,0,0,0,0,0,1,3,3,1,0,0,0,0,0,2],
-    [2,0,4,0,0,0,1,1,1,1,0,0,0,4,0,2],
-    [2,0,0,0,0,0,1,0,0,1,0,0,0,0,0,2],
-    [2,0,0,4,0,0,1,0,0,1,0,0,4,0,0,2],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+    [2,0,0,4,0,0,0,1,1,1,1,1,0,0,0,4,0,0,0,2],
+    [2,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,2],
+    [2,4,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,4,2],
+    [2,0,0,0,2,0,0,1,0,0,0,1,0,0,2,0,0,0,0,2],
+    [2,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,2],
+    [2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
+    [2,0,0,0,0,0,0,1,3,3,3,1,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,1,3,3,3,1,0,0,0,0,0,0,0,2],
+    [2,0,4,0,0,0,0,1,1,1,1,1,0,0,0,0,4,0,0,2],
+    [2,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,2],
+    [2,0,0,4,0,0,0,1,0,0,0,1,0,0,0,4,0,0,0,2],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
 ];
 
 // NPC locations and data
 const NPCS = [
-    { id: 'vibe', x: 3, y: 2, color: PAL.red, name: 'EMOJI SHRINE', badge: 'Vibe',
+    { id: 'vibe', x: 4, y: 3, color: PAL.red, name: 'EMOJI SHRINE', badge: 'Vibe',
       dialogue: ['This is the EMOJI SHRINE!', 'Choose an emoji that represents your vibe today.'],
       encounter: { type: 'emoji', title: 'EMOJI SHRINE' } },
-    { id: 'feeling', x: 12, y: 2, color: PAL.blue, name: 'FEELINGS FOUNTAIN', badge: 'Feeling',
+    { id: 'feeling', x: 15, y: 3, color: PAL.blue, name: 'FEELINGS FOUNTAIN', badge: 'Feeling',
       dialogue: ['Welcome to the FEELINGS FOUNTAIN.', 'Tell me... how are you feeling today?'],
       encounter: { type: 'text', title: 'FEELINGS FOUNTAIN', field: 'feeling', prompt: 'How are you feeling today?' } },
-    { id: 'forward', x: 2, y: 7, color: PAL.purple, name: 'FORWARD BRIDGE', badge: 'Forward',
+    { id: 'forward', x: 3, y: 8, color: PAL.purple, name: 'FORWARD BRIDGE', badge: 'Forward',
       dialogue: ['You stand at the FORWARD BRIDGE...', 'What is one thing you are looking forward to?'],
       encounter: { type: 'text', title: 'FORWARD BRIDGE', field: 'lookingForward', prompt: 'One thing you\'re looking forward to?' } },
-    { id: 'proud', x: 13, y: 7, color: PAL.yellow, name: 'PRIDE PEAK', badge: 'Proud',
+    { id: 'proud', x: 16, y: 8, color: PAL.yellow, name: 'PRIDE PEAK', badge: 'Proud',
       dialogue: ['You have reached PRIDE PEAK!', 'Tell me something you were proud of this week.'],
       encounter: { type: 'text', title: 'PRIDE PEAK', field: 'proudOf', prompt: 'Something you were proud of this week?' } },
-    { id: 'discuss', x: 7, y: 10, color: PAL.green, name: 'DISCUSSION DEN', badge: 'Discuss',
+    { id: 'discuss', x: 9, y: 11, color: PAL.green, name: 'DISCUSSION DEN', badge: 'Discuss',
       dialogue: ['The DISCUSSION DEN awaits...', 'Is there anything we need to talk about today?'],
       encounter: { type: 'text', title: 'DISCUSSION DEN', field: 'talkAbout', prompt: 'Anything we need to talk about today?' } },
 ];
@@ -200,14 +201,14 @@ function initFont() {
 
 function drawText(text, x, y, color = PAL.black, scale = 1) {
     ctx.fillStyle = color;
-    ctx.font = `${7 * scale}px monospace`;
+    ctx.font = `${11 * scale}px monospace`;
     ctx.textBaseline = 'top';
     ctx.fillText(text, x, y);
 }
 
 function drawTextCentered(text, x, y, color = PAL.black, scale = 1) {
     ctx.fillStyle = color;
-    ctx.font = `${7 * scale}px monospace`;
+    ctx.font = `${11 * scale}px monospace`;
     ctx.textBaseline = 'top';
     ctx.textAlign = 'center';
     ctx.fillText(text, x, y);
@@ -230,7 +231,7 @@ const CHAR_PALETTES = {
 // Sprite pixel maps (16 wide x 24 tall) — simplified representations
 // Each sprite is defined as drawing instructions for efficiency
 function drawCharSprite(x, y, charName, dir, frame, scale) {
-    scale = scale || 1;
+    scale = scale || 1.5;
     const pal = CHAR_PALETTES[charName];
     if (!pal) return;
 
@@ -416,62 +417,64 @@ let charSelectAnimTimer = 0;
 function drawTile(tx, ty, type) {
     const x = tx * TILE;
     const y = ty * TILE;
+    const T = TILE; // shorthand
+    const s = T / 16; // scale factor relative to original 16px tiles
 
     switch(type) {
         case 0: // Grass
             ctx.fillStyle = PAL.green;
-            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillRect(x, y, T, T);
             // Grass detail
             ctx.fillStyle = PAL.lightGreen;
             if ((tx + ty) % 3 === 0) {
-                ctx.fillRect(x+3, y+6, 2, 3);
-                ctx.fillRect(x+9, y+10, 2, 3);
+                ctx.fillRect(x+3*s, y+6*s, 3*s, 4*s);
+                ctx.fillRect(x+9*s, y+10*s, 3*s, 4*s);
             }
             if ((tx + ty) % 5 === 0) {
-                ctx.fillRect(x+7, y+3, 2, 3);
+                ctx.fillRect(x+7*s, y+3*s, 3*s, 4*s);
             }
             break;
         case 1: // Path
             ctx.fillStyle = PAL.tan;
-            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillRect(x, y, T, T);
             ctx.fillStyle = PAL.lightTan;
-            ctx.fillRect(x+2, y+2, 4, 4);
-            ctx.fillRect(x+10, y+8, 4, 4);
+            ctx.fillRect(x+2*s, y+2*s, 5*s, 5*s);
+            ctx.fillRect(x+10*s, y+8*s, 5*s, 5*s);
             break;
         case 2: // Tree
             ctx.fillStyle = PAL.green;
-            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillRect(x, y, T, T);
             // Trunk
             ctx.fillStyle = PAL.darkBrown;
-            ctx.fillRect(x+6, y+10, 4, 6);
+            ctx.fillRect(x+6*s, y+10*s, 4*s, 6*s);
             // Canopy
             ctx.fillStyle = PAL.darkGreen;
-            ctx.fillRect(x+2, y+2, 12, 10);
-            ctx.fillRect(x+4, y+0, 8, 4);
+            ctx.fillRect(x+2*s, y+2*s, 12*s, 10*s);
+            ctx.fillRect(x+4*s, y+0, 8*s, 4*s);
             // Highlight
             ctx.fillStyle = PAL.lightGreen;
-            ctx.fillRect(x+4, y+3, 4, 3);
+            ctx.fillRect(x+4*s, y+3*s, 4*s, 3*s);
             break;
         case 3: // Water
             ctx.fillStyle = PAL.water;
-            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillRect(x, y, T, T);
             // Ripples
             ctx.fillStyle = PAL.waterLight;
             const waveOff = Math.floor(Date.now() / 500) % 4;
-            ctx.fillRect(x + ((waveOff + tx*3) % 12), y+4, 6, 2);
-            ctx.fillRect(x + ((waveOff + tx*7 + 6) % 12), y+10, 5, 2);
+            ctx.fillRect(x + ((waveOff + tx*3) % Math.floor(12*s)), y+4*s, 8*s, 3*s);
+            ctx.fillRect(x + ((waveOff + tx*7 + 6) % Math.floor(12*s)), y+10*s, 7*s, 3*s);
             break;
         case 4: // Flower
             ctx.fillStyle = PAL.green;
-            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillRect(x, y, T, T);
             // Flower
             ctx.fillStyle = PAL.red;
-            ctx.fillRect(x+6, y+5, 4, 4);
+            ctx.fillRect(x+6*s, y+5*s, 5*s, 5*s);
             ctx.fillStyle = PAL.yellow;
-            ctx.fillRect(x+7, y+6, 2, 2);
+            ctx.fillRect(x+7*s, y+6*s, 3*s, 3*s);
             // Stem
             ctx.fillStyle = PAL.darkGreen;
-            ctx.fillRect(x+7, y+9, 2, 4);
+            ctx.fillRect(x+7*s, y+10*s, 3*s, 5*s);
             break;
     }
 }
@@ -479,28 +482,29 @@ function drawTile(tx, ty, type) {
 function drawNPC(npc) {
     const x = npc.x * TILE;
     const y = npc.y * TILE;
+    const s = TILE / 16;
     const completed = badges.has(npc.id);
 
     // Body
     ctx.fillStyle = completed ? PAL.gray : npc.color;
-    ctx.fillRect(x+4, y+4, 8, 10);
+    ctx.fillRect(x+4*s, y+4*s, 8*s, 12*s);
     // Head
     ctx.fillStyle = PAL.lightTan;
-    ctx.fillRect(x+5, y+1, 6, 5);
+    ctx.fillRect(x+5*s, y+1*s, 7*s, 6*s);
     // Eyes
     ctx.fillStyle = PAL.black;
-    ctx.fillRect(x+6, y+3, 2, 2);
-    ctx.fillRect(x+9, y+3, 2, 2);
+    ctx.fillRect(x+6*s, y+3*s, 2*s, 2*s);
+    ctx.fillRect(x+10*s, y+3*s, 2*s, 2*s);
     // Hat/identifier colored top
     ctx.fillStyle = completed ? PAL.darkGray : npc.color;
-    ctx.fillRect(x+4, y+0, 8, 2);
+    ctx.fillRect(x+4*s, y+0, 8*s, 3*s);
 
     // Exclamation mark if not completed
     if (!completed) {
-        const bounce = Math.sin(Date.now() / 300) * 2;
+        const bounce = Math.sin(Date.now() / 300) * 3;
         ctx.fillStyle = PAL.yellow;
-        ctx.fillRect(x+7, y - 6 + bounce, 2, 3);
-        ctx.fillRect(x+7, y - 2 + bounce, 2, 1);
+        ctx.fillRect(x+7*s, y - 8*s + bounce, 3*s, 5*s);
+        ctx.fillRect(x+7*s, y - 2*s + bounce, 3*s, 2*s);
     }
 }
 
@@ -510,8 +514,8 @@ function drawPlayer() {
     const frame = player.moving ? player.step : 0;
     const dir = player.dir;
 
-    // Draw using character sprite system — offset to fit 16x16 tile from 16x24 sprite
-    drawCharSprite(x, y - 8, playerName || 'Ben', dir, frame, 1);
+    // Draw using character sprite system — offset to fit tile from sprite
+    drawCharSprite(x, y - 12, playerName || 'Ben', dir, frame, 1.5);
 }
 
 // ============================================================
@@ -525,55 +529,55 @@ function drawTitle() {
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
     // Decorative pattern
-    for (let i = 0; i < 16; i++) {
-        for (let j = 0; j < 12; j++) {
+    for (let i = 0; i < COLS; i++) {
+        for (let j = 0; j < ROWS; j++) {
             if ((i + j) % 4 === 0) {
                 ctx.fillStyle = PAL.green;
-                ctx.fillRect(i*16+2, j*16+2, 12, 12);
+                ctx.fillRect(i*TILE+3, j*TILE+3, TILE-6, TILE-6);
             }
         }
     }
 
     // Title box
     ctx.fillStyle = PAL.black;
-    ctx.fillRect(30, 30, CANVAS_W-60, 70);
+    ctx.fillRect(60, 50, CANVAS_W-120, 110);
     ctx.fillStyle = PAL.white;
-    ctx.fillRect(32, 32, CANVAS_W-64, 66);
+    ctx.fillRect(63, 53, CANVAS_W-126, 104);
     ctx.fillStyle = PAL.black;
-    ctx.fillRect(34, 34, CANVAS_W-68, 62);
+    ctx.fillRect(66, 56, CANVAS_W-132, 98);
 
     // Title text
-    const titleY = 48;
+    const titleY = 76;
     ctx.fillStyle = PAL.yellow;
-    ctx.font = '16px monospace';
+    ctx.font = '28px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText('VIBE CHECK', CANVAS_W/2, titleY);
     ctx.fillStyle = PAL.white;
-    ctx.font = '8px monospace';
-    ctx.fillText('ADVENTURE MODE', CANVAS_W/2, titleY + 22);
-    ctx.fillText('v2.0', CANVAS_W/2, titleY + 34);
+    ctx.font = '13px monospace';
+    ctx.fillText('ADVENTURE MODE', CANVAS_W/2, titleY + 36);
+    ctx.fillText('v2.0', CANVAS_W/2, titleY + 54);
 
     // Animated Pokemon-style sprite in center
-    const sprY = 115 + Math.sin(titleAnimTimer / 20) * 3;
+    const sprY = 195 + Math.sin(titleAnimTimer / 20) * 4;
     // Draw a little character
     ctx.fillStyle = PAL.blue;
-    ctx.fillRect(120, sprY, 16, 16);
+    ctx.fillRect(CANVAS_W/2-12, sprY, 24, 24);
     ctx.fillStyle = PAL.lightTan;
-    ctx.fillRect(122, sprY-6, 12, 8);
+    ctx.fillRect(CANVAS_W/2-9, sprY-9, 18, 12);
     ctx.fillStyle = PAL.red;
-    ctx.fillRect(122, sprY-8, 12, 3);
+    ctx.fillRect(CANVAS_W/2-9, sprY-12, 18, 5);
 
     // Version/copyright style text
     ctx.fillStyle = PAL.lightGreen;
-    ctx.font = '7px monospace';
-    ctx.fillText('2026 STRIPE APAC PMM', CANVAS_W/2, 145);
+    ctx.font = '11px monospace';
+    ctx.fillText('2026 STRIPE APAC PMM', CANVAS_W/2, 240);
 
     // Press Start (blinking)
     if (Math.floor(titleAnimTimer / 30) % 2 === 0) {
         ctx.fillStyle = PAL.white;
-        ctx.font = '8px monospace';
-        ctx.fillText('PRESS START', CANVAS_W/2, 170);
+        ctx.font = '13px monospace';
+        ctx.fillText('PRESS START', CANVAS_W/2, 280);
     }
 
     ctx.textAlign = 'start';
@@ -587,7 +591,7 @@ function drawNameSelect() {
     const animFrame = Math.floor(charSelectAnimTimer / 20) % 2;
 
     // Light blue checkered/tiled background
-    for (let ty = 0; ty < ROWS; ty++) {
+    for (let ty = 0; ty < ROWS + 1; ty++) {
         for (let tx = 0; tx < COLS; tx++) {
             ctx.fillStyle = (tx + ty) % 2 === 0 ? '#a8d8f0' : '#90c8e8';
             ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
@@ -599,58 +603,58 @@ function drawNameSelect() {
     }
 
     // Top panel: character sprites in a row
-    const spriteAreaY = 16;
-    const spriteSpacing = 42;
-    const spriteStartX = (CANVAS_W - (TEAM.length * spriteSpacing)) / 2 + 12;
+    const spriteAreaY = 30;
+    const spriteSpacing = 72;
+    const spriteStartX = (CANVAS_W - (TEAM.length * spriteSpacing)) / 2 + 20;
 
-    // Draw all character sprites (small, 1x scale)
+    // Draw all character sprites (1.5x scale)
     for (let i = 0; i < TEAM.length; i++) {
         const sx = spriteStartX + i * spriteSpacing;
-        const sy = spriteAreaY + 10;
+        const sy = spriteAreaY + 16;
 
         // Highlight box for selected character
         if (i === nameSelectIdx) {
             // Animated selector border
             ctx.fillStyle = '#f8d030';
-            ctx.fillRect(sx - 4, sy - 4, 24, 32);
+            ctx.fillRect(sx - 6, sy - 6, 36, 48);
             ctx.fillStyle = '#fff';
-            ctx.fillRect(sx - 2, sy - 2, 20, 28);
+            ctx.fillRect(sx - 4, sy - 4, 32, 44);
             ctx.fillStyle = (tx => (tx + i) % 2 === 0 ? '#a8d8f0' : '#90c8e8')(Math.floor(charSelectAnimTimer/10));
-            ctx.fillRect(sx - 1, sy - 1, 18, 26);
+            ctx.fillRect(sx - 2, sy - 2, 28, 40);
         }
 
         // Draw the sprite with idle animation
-        drawCharSprite(sx, sy, TEAM[i], 0, animFrame, 1);
+        drawCharSprite(sx, sy, TEAM[i], 0, animFrame, 1.5);
     }
 
     // Bottom-left panel: dialogue box
-    const dlgX = 8;
-    const dlgY = CANVAS_H - 72;
-    const dlgW = 130;
-    const dlgH = 62;
+    const dlgX = 16;
+    const dlgY = CANVAS_H - 120;
+    const dlgW = 200;
+    const dlgH = 100;
     drawBox(dlgX, dlgY, dlgW, dlgH);
-    drawText('Choose your', dlgX + 10, dlgY + 12, PAL.black, 1);
-    drawText('character.', dlgX + 10, dlgY + 24, PAL.black, 1);
+    drawText('Choose your', dlgX + 16, dlgY + 20, PAL.black, 1);
+    drawText('character.', dlgX + 16, dlgY + 38, PAL.black, 1);
     // Show selected character name
     ctx.fillStyle = PAL.black;
-    ctx.font = 'bold 8px monospace';
-    ctx.fillText(TEAM[nameSelectIdx], dlgX + 10, dlgY + 44);
-    ctx.font = '7px monospace';
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText(TEAM[nameSelectIdx], dlgX + 16, dlgY + 68);
+    ctx.font = '11px monospace';
 
     // Bottom-right panel: large preview
-    const prvX = CANVAS_W - 108;
-    const prvY = CANVAS_H - 72;
-    const prvW = 100;
-    const prvH = 62;
+    const prvX = CANVAS_W - 170;
+    const prvY = CANVAS_H - 120;
+    const prvW = 154;
+    const prvH = 100;
     drawBox(prvX, prvY, prvW, prvH);
 
-    // Draw enlarged character (3x scale)
-    const bigX = prvX + (prvW - 48) / 2;
-    const bigY = prvY + 4;
-    drawCharSprite(bigX, bigY, TEAM[nameSelectIdx], 0, animFrame, 2.5);
+    // Draw enlarged character (3.5x scale)
+    const bigX = prvX + (prvW - 56) / 2;
+    const bigY = prvY + 8;
+    drawCharSprite(bigX, bigY, TEAM[nameSelectIdx], 0, animFrame, 3.5);
 
     // Navigation hints at very bottom
-    drawText('LEFT/RIGHT: select  SPACE: confirm', 24, CANVAS_H - 6, '#4080a0', 1);
+    drawText('LEFT/RIGHT: select  SPACE: confirm', 60, CANVAS_H - 10, '#4080a0', 1);
 }
 
 // ============================================================
@@ -682,8 +686,8 @@ function drawOverworld() {
                 const ny = npc.y * TILE;
                 if (!badges.has(npc.id)) {
                     ctx.fillStyle = PAL.black;
-                    ctx.fillRect(nx-2, ny-12, npc.name.length * 4 + 8, 9);
-                    drawText(npc.name, nx, ny-11, PAL.white, 1);
+                    ctx.fillRect(nx-3, ny-18, npc.name.length * 7 + 10, 15);
+                    drawText(npc.name, nx+1, ny-16, PAL.white, 1);
                 }
             }
         }
@@ -696,21 +700,21 @@ function drawOverworld() {
 function drawBadgeBar() {
     const badgeIcons = ['V','F','B','P','D'];
     const badgeColors = [PAL.red, PAL.blue, PAL.purple, PAL.yellow, PAL.green];
-    const startX = CANVAS_W - 76;
-    const y = 2;
+    const startX = CANVAS_W - 120;
+    const y = 4;
 
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(startX - 4, y - 1, 76, 12);
+    ctx.fillRect(startX - 6, y - 2, 120, 20);
 
     const npcIds = ['vibe','feeling','forward','proud','discuss'];
     for (let i = 0; i < 5; i++) {
-        const bx = startX + i * 14;
+        const bx = startX + i * 22;
         const earned = badges.has(npcIds[i]);
         ctx.fillStyle = earned ? badgeColors[i] : PAL.darkGray;
-        ctx.fillRect(bx, y, 10, 10);
+        ctx.fillRect(bx, y, 16, 16);
         ctx.fillStyle = earned ? PAL.white : PAL.black;
-        ctx.font = '6px monospace';
-        ctx.fillText(badgeIcons[i], bx+3, y+8);
+        ctx.font = '10px monospace';
+        ctx.fillText(badgeIcons[i], bx+4, y+13);
     }
 }
 
@@ -724,24 +728,24 @@ function drawDialogueBox() {
     drawOverworld();
 
     // Dialogue box at bottom
-    const boxY = CANVAS_H - 48;
-    drawBox(4, boxY, CANVAS_W - 8, 44);
+    const boxY = CANVAS_H - 80;
+    drawBox(8, boxY, CANVAS_W - 16, 72);
 
     if (dialogueLines.length > 0 && dialogueIdx < dialogueLines.length) {
         // Word wrap the text
         const text = dialogueLines[dialogueIdx];
-        const maxChars = 36;
+        const maxChars = 52;
         const line1 = text.substring(0, maxChars);
         const line2 = text.substring(maxChars, maxChars * 2);
 
-        drawText(line1, 14, boxY + 10, PAL.black, 1);
-        if (line2) drawText(line2, 14, boxY + 22, PAL.black, 1);
+        drawText(line1, 24, boxY + 18, PAL.black, 1);
+        if (line2) drawText(line2, 24, boxY + 36, PAL.black, 1);
 
         // Blinking triangle
         if (Math.floor(Date.now() / 400) % 2 === 0) {
             ctx.fillStyle = PAL.black;
-            ctx.fillRect(CANVAS_W - 20, boxY + 34, 6, 4);
-            ctx.fillRect(CANVAS_W - 18, boxY + 38, 2, 2);
+            ctx.fillRect(CANVAS_W - 32, boxY + 54, 8, 6);
+            ctx.fillRect(CANVAS_W - 30, boxY + 60, 4, 3);
         }
     }
 }
@@ -757,96 +761,96 @@ function drawBattle() {
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
     // Top half: battle scene gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, 96);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 160);
     gradient.addColorStop(0, '#88c070');
     gradient.addColorStop(1, '#a8d890');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, CANVAS_W, 96);
+    ctx.fillRect(0, 0, CANVAS_W, 160);
 
     // Ground patches
     ctx.fillStyle = '#78b858';
-    ctx.fillRect(0, 80, CANVAS_W, 16);
+    ctx.fillRect(0, 140, CANVAS_W, 20);
 
     // Enemy side (right top) - the encounter icon
-    const enemyX = CANVAS_W - 70;
-    const enemyY = 20;
+    const enemyX = CANVAS_W - 120;
+    const enemyY = 30;
     // Platform
     ctx.fillStyle = '#60a040';
-    ctx.fillRect(enemyX - 20, enemyY + 36, 60, 8);
+    ctx.fillRect(enemyX - 30, enemyY + 56, 90, 12);
 
     // Draw encounter "sprite" (colored shape representing the station)
     const enc = battleState.encounter;
     ctx.fillStyle = battleState.npcColor;
-    ctx.fillRect(enemyX, enemyY, 24, 32);
+    ctx.fillRect(enemyX, enemyY, 36, 48);
     ctx.fillStyle = PAL.white;
-    ctx.fillRect(enemyX + 4, enemyY + 4, 16, 16);
+    ctx.fillRect(enemyX + 6, enemyY + 6, 24, 24);
     ctx.fillStyle = battleState.npcColor;
-    ctx.font = '10px monospace';
+    ctx.font = '16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(enc.type === 'emoji' ? '?!' : '...', enemyX + 12, enemyY + 14);
+    ctx.fillText(enc.type === 'emoji' ? '?!' : '...', enemyX + 18, enemyY + 22);
     ctx.textAlign = 'start';
 
     // Player side (left bottom)
-    const playerSprX = 30;
-    const playerSprY = 50;
+    const playerSprX = 50;
+    const playerSprY = 80;
     // Platform
     ctx.fillStyle = '#60a040';
-    ctx.fillRect(playerSprX - 10, playerSprY + 34, 50, 8);
+    ctx.fillRect(playerSprX - 15, playerSprY + 56, 80, 12);
     // Draw player from behind (larger) using character sprite
-    drawCharSprite(playerSprX, playerSprY - 4, playerName || 'Ben', 1, 0, 2);
+    drawCharSprite(playerSprX, playerSprY - 6, playerName || 'Ben', 1, 0, 3);
 
     // Enemy info box (top left)
-    drawBox(4, 4, 100, 28);
-    drawText(enc.title, 10, 10, PAL.black, 1);
+    drawBox(8, 8, 160, 44);
+    drawText(enc.title, 18, 18, PAL.black, 1);
     // HP-style progress bar
     ctx.fillStyle = PAL.darkGray;
-    ctx.fillRect(10, 22, 88, 4);
+    ctx.fillRect(18, 36, 140, 6);
     const progress = badges.size / 5;
     ctx.fillStyle = PAL.green;
-    ctx.fillRect(10, 22, 88 * progress, 4);
+    ctx.fillRect(18, 36, 140 * progress, 6);
 
     // Player info box (bottom right area)
-    drawBox(CANVAS_W - 110, 70, 106, 28);
-    drawText(playerName || 'PLAYER', CANVAS_W - 104, 76, PAL.black, 1);
+    drawBox(CANVAS_W - 180, 115, 170, 44);
+    drawText(playerName || 'PLAYER', CANVAS_W - 170, 124, PAL.black, 1);
     ctx.fillStyle = PAL.darkGray;
-    ctx.fillRect(CANVAS_W - 104, 88, 88, 4);
+    ctx.fillRect(CANVAS_W - 170, 142, 140, 6);
     ctx.fillStyle = PAL.green;
-    ctx.fillRect(CANVAS_W - 104, 88, 88, 4);
+    ctx.fillRect(CANVAS_W - 170, 142, 140, 6);
 
     // Bottom section: action area
     if (battleState.phase === 'prompt') {
         // "What will [name] do?" textbox
-        drawBox(4, CANVAS_H - 48, CANVAS_W - 8, 44);
-        drawText('What will ' + (playerName||'PLAYER') + ' do?', 14, CANVAS_H - 40, PAL.black, 1);
+        drawBox(8, CANVAS_H - 80, CANVAS_W - 16, 72);
+        drawText('What will ' + (playerName||'PLAYER') + ' do?', 24, CANVAS_H - 66, PAL.black, 1);
         // Press SPACE prompt
         if (Math.floor(Date.now() / 500) % 2 === 0) {
-            drawText('[SPACE to continue]', 14, CANVAS_H - 24, PAL.gray, 1);
+            drawText('[SPACE to continue]', 24, CANVAS_H - 40, PAL.gray, 1);
         }
     } else if (battleState.phase === 'emoji') {
         drawEmojiPicker();
     } else if (battleState.phase === 'text') {
         drawTextInput();
     } else if (battleState.phase === 'complete') {
-        drawBox(4, CANVAS_H - 48, CANVAS_W - 8, 44);
-        drawText(playerName + ' earned the', 14, CANVAS_H - 40, PAL.black, 1);
-        drawText(battleState.badgeName + ' BADGE!', 14, CANVAS_H - 26, PAL.black, 1);
+        drawBox(8, CANVAS_H - 80, CANVAS_W - 16, 72);
+        drawText(playerName + ' earned the', 24, CANVAS_H - 66, PAL.black, 1);
+        drawText(battleState.badgeName + ' BADGE!', 24, CANVAS_H - 44, PAL.black, 1);
         if (Math.floor(Date.now() / 400) % 2 === 0) {
             ctx.fillStyle = PAL.black;
-            ctx.fillRect(CANVAS_W - 20, CANVAS_H - 12, 6, 4);
+            ctx.fillRect(CANVAS_W - 32, CANVAS_H - 20, 8, 6);
         }
     }
 }
 
 function drawEmojiPicker() {
     // Bottom area for emoji grid
-    drawBox(4, 96, CANVAS_W - 8, CANVAS_H - 100);
+    drawBox(8, 160, CANVAS_W - 16, CANVAS_H - 168);
 
     const cols = 8;
     const rows = 3;
-    const cellW = 28;
-    const cellH = 26;
-    const startX = 14;
-    const startY = 104;
+    const cellW = 52;
+    const cellH = 42;
+    const startX = 24;
+    const startY = 174;
 
     const selIdx = battleState.emojiIdx || 0;
 
@@ -858,44 +862,44 @@ function drawEmojiPicker() {
 
         if (i === selIdx) {
             ctx.fillStyle = PAL.yellow;
-            ctx.fillRect(ex - 2, ey - 2, cellW - 2, cellH - 2);
+            ctx.fillRect(ex - 3, ey - 3, cellW - 4, cellH - 4);
         }
 
-        ctx.font = '14px serif';
-        ctx.fillText(EMOJIS[i], ex + 4, ey + 16);
+        ctx.font = '22px serif';
+        ctx.fillText(EMOJIS[i], ex + 8, ey + 28);
     }
 
-    drawText('ARROWS:select SPACE:pick', 14, CANVAS_H - 10, PAL.darkGray, 1);
+    drawText('ARROWS:select SPACE:pick', 24, CANVAS_H - 14, PAL.darkGray, 1);
 }
 
 function drawTextInput() {
-    drawBox(4, 96, CANVAS_W - 8, CANVAS_H - 100);
+    drawBox(8, 160, CANVAS_W - 16, CANVAS_H - 168);
 
     const enc = battleState.encounter;
-    drawText(enc.prompt, 14, 104, PAL.black, 1);
+    drawText(enc.prompt, 24, 174, PAL.black, 1);
 
     // Input field
     ctx.fillStyle = PAL.white;
-    ctx.fillRect(12, 118, CANVAS_W - 28, 36);
+    ctx.fillRect(20, 196, CANVAS_W - 44, 60);
     ctx.strokeStyle = PAL.black;
     ctx.lineWidth = 1;
-    ctx.strokeRect(12, 118, CANVAS_W - 28, 36);
+    ctx.strokeRect(20, 196, CANVAS_W - 44, 60);
 
     // Text content
     const displayText = textInputValue + (Math.floor(Date.now()/500)%2===0 ? '_' : '');
     // Word wrap
-    const maxChars = 34;
+    const maxChars = 52;
     const lines = [];
     for (let i = 0; i < displayText.length; i += maxChars) {
         lines.push(displayText.substring(i, i + maxChars));
     }
     if (lines.length === 0) lines.push('_');
 
-    for (let i = 0; i < Math.min(lines.length, 3); i++) {
-        drawText(lines[i], 16, 123 + i * 10, PAL.black, 1);
+    for (let i = 0; i < Math.min(lines.length, 4); i++) {
+        drawText(lines[i], 28, 204 + i * 14, PAL.black, 1);
     }
 
-    drawText('TYPE your answer, ENTER to submit', 14, CANVAS_H - 12, PAL.darkGray, 1);
+    drawText('TYPE your answer, ENTER to submit', 24, CANVAS_H - 16, PAL.darkGray, 1);
 }
 
 // ============================================================
@@ -912,10 +916,10 @@ function drawComplete() {
         particles.push({
             x: Math.random() * CANVAS_W,
             y: -5,
-            vx: (Math.random() - 0.5) * 2,
-            vy: Math.random() * 2 + 1,
+            vx: (Math.random() - 0.5) * 3,
+            vy: Math.random() * 3 + 1.5,
             color: [PAL.red, PAL.blue, PAL.yellow, PAL.green, PAL.purple][Math.floor(Math.random()*5)],
-            size: Math.random() * 4 + 2,
+            size: Math.random() * 6 + 3,
         });
     }
 
@@ -929,35 +933,35 @@ function drawComplete() {
     }
 
     // Main text
-    drawBox(20, 50, CANVAS_W - 40, 90);
+    drawBox(40, 80, CANVAS_W - 80, 150);
 
     ctx.fillStyle = PAL.yellow;
-    ctx.font = '12px monospace';
+    ctx.font = '22px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('VIBE CHECK', CANVAS_W/2, 66);
-    ctx.fillText('COMPLETE!', CANVAS_W/2, 82);
+    ctx.fillText('VIBE CHECK', CANVAS_W/2, 108);
+    ctx.fillText('COMPLETE!', CANVAS_W/2, 134);
 
     ctx.fillStyle = PAL.black;
-    ctx.font = '7px monospace';
-    ctx.fillText(playerName + ' checked in successfully!', CANVAS_W/2, 100);
-    ctx.fillText('All 5 badges earned.', CANVAS_W/2, 114);
-    ctx.fillText('Data saved to feed.', CANVAS_W/2, 126);
+    ctx.font = '12px monospace';
+    ctx.fillText(playerName + ' checked in successfully!', CANVAS_W/2, 164);
+    ctx.fillText('All 5 badges earned.', CANVAS_W/2, 184);
+    ctx.fillText('Data saved to feed.', CANVAS_W/2, 204);
 
     ctx.textAlign = 'start';
 
     // Badges row
     const badgeColors = [PAL.red, PAL.blue, PAL.purple, PAL.yellow, PAL.green];
-    const startX = CANVAS_W/2 - 40;
+    const startX = CANVAS_W/2 - 60;
     for (let i = 0; i < 5; i++) {
         ctx.fillStyle = badgeColors[i];
-        ctx.fillRect(startX + i * 18, 148, 12, 12);
+        ctx.fillRect(startX + i * 28, 240, 20, 20);
         ctx.fillStyle = PAL.white;
-        ctx.font = '6px monospace';
-        ctx.fillText('*', startX + i * 18 + 4, 157);
+        ctx.font = '10px monospace';
+        ctx.fillText('*', startX + i * 28 + 7, 256);
     }
 
     if (completeTimer > 60 && Math.floor(Date.now()/500)%2===0) {
-        drawText('SPACE to play again', 80, CANVAS_H - 16, PAL.gray, 1);
+        drawText('SPACE to play again', 160, CANVAS_H - 24, PAL.gray, 1);
     }
 }
 
@@ -1001,11 +1005,11 @@ function drawBox(x, y, w, h) {
     ctx.fillRect(x, y, w, h);
     // Inner white
     ctx.fillStyle = PAL.white;
-    ctx.fillRect(x+2, y+2, w-4, h-4);
+    ctx.fillRect(x+3, y+3, w-6, h-6);
     // Inner border
     ctx.strokeStyle = PAL.black;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x+4, y+4, w-8, h-8);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x+6, y+6, w-12, h-12);
 }
 
 // ============================================================
@@ -1034,7 +1038,7 @@ function movePlayer() {
         // Animate toward target
         const targetX = player.x * TILE;
         const targetY = player.y * TILE;
-        const speed = 2;
+        const speed = 3;
 
         if (Math.abs(player.px - targetX) > speed) {
             player.px += player.px < targetX ? speed : -speed;
