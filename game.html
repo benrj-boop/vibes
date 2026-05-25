@@ -1328,14 +1328,14 @@ function drawEmojiPicker() {
 
         if (i === selIdx) {
             ctx.fillStyle = PAL.yellow;
-            ctx.fillRect(ex - 3, ey - 3, cellW - 4, cellH - 4);
+            ctx.fillRect(ex - 2, ey - 2, 30, 30);
         }
 
         ctx.font = '22px serif';
         ctx.fillText(EMOJIS[i], ex + 8, ey + 28);
     }
 
-    drawText('ARROWS:select SPACE:pick', 24, CANVAS_H - 14, PAL.darkGray, 1);
+    drawText('ARROWS:select SPACE:pick ESC:skip', 24, CANVAS_H - 24, PAL.darkGray, 1);
 }
 
 function drawTextInput() {
@@ -1365,7 +1365,7 @@ function drawTextInput() {
         drawText(lines[i], 28, 204 + i * 14, PAL.black, 1);
     }
 
-    drawText('TYPE your answer, ENTER to submit', 24, CANVAS_H - 16, PAL.darkGray, 1);
+    drawText('TYPE your answer, ENTER to submit, ESC to skip', 24, CANVAS_H - 24, PAL.darkGray, 1);
 }
 
 // ============================================================
@@ -1724,6 +1724,7 @@ function handleArrowsForUI(key) {
         else if (key === 'ArrowLeft' || key === 'a' || key === 'A') idx = (idx - 1 + total) % total;
         else if (key === 'ArrowDown' || key === 's' || key === 'S') idx = Math.min(idx + cols, total - 1);
         else if (key === 'ArrowUp' || key === 'w' || key === 'W') idx = Math.max(idx - cols, 0);
+        else if (key === 'Escape') { completeBattle(); return; }
         battleState.emojiIdx = idx;
     }
 }
