@@ -1061,6 +1061,7 @@
         ];
 
         const TEAM = ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+        const SCRIPT_URL = 'https://script.google.com/a/macros/stripe.com/s/AKfycbxrTgdwlufPu8l-2IY0CVsiGQhmXcYTqSDxyKgQh6YnVyxdFAr4tdzU3YPKFGYPWBUD/exec';
 
         let state = { selection: null, type: null };
         let selectedName = localStorage.getItem('vibecheck-name') || null;
@@ -1192,6 +1193,23 @@
             todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
             localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
             renderFeed();
+
+            // Sync to Google Sheet
+            if (SCRIPT_URL) {
+                const now = new Date();
+                const weekNum = Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7);
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'save',
+                        week: `${now.getFullYear()}-W${String(weekNum).padStart(2,'0')}`,
+                        date: now.toISOString().split('T')[0],
+                        name: name,
+                        emoji: state.selection,
+                        song: feeling || '',
+                    }),
+                }).catch(() => {});
+            }
             clearSelection();
             document.getElementById('feelingInput').value = '';
             document.getElementById('lookingForwardInput').value = '';
