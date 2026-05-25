@@ -526,22 +526,93 @@
         }
 
         .freeform-section {
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #2a2a4e;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .freeform-section.has-content {
+            border-color: #4ade8066;
+        }
+
+        .freeform-section.expanded {
+            border-color: #667eea55;
+        }
+
+        .freeform-header {
+            display: flex;
+            align-items: center;
+            padding: 0.7rem 1rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            user-select: none;
+        }
+
+        .freeform-header:hover {
+            background: #1e1e3a;
+        }
+
+        .freeform-header-icon {
+            font-size: 1.1rem;
+            margin-right: 0.6rem;
+        }
+
+        .freeform-header-title {
+            font-size: 0.85rem;
+            color: #bbb;
+            flex: 1;
+        }
+
+        .freeform-header-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: transparent;
+            transition: background 0.2s;
+            margin-right: 0.5rem;
+        }
+
+        .freeform-section.has-content .freeform-header-indicator {
+            background: #4ade80;
+        }
+
+        .freeform-header-chevron {
+            font-size: 0.7rem;
+            color: #555;
+            transition: transform 0.2s;
+        }
+
+        .freeform-section.expanded .freeform-header-chevron {
+            transform: rotate(90deg);
+        }
+
+        .freeform-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease, padding 0.25s ease;
+            padding: 0 1rem;
+        }
+
+        .freeform-section.expanded .freeform-body {
+            max-height: 200px;
+            padding: 0 1rem 0.75rem;
         }
 
         .freeform-section textarea {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
             border: 1px solid #333;
-            background: #1a1a2e;
+            background: #12121f;
             color: #fff;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-family: inherit;
             outline: none;
             resize: none;
             transition: border-color 0.2s;
-            min-height: 60px;
+            min-height: 50px;
         }
 
         .freeform-section textarea:focus {
@@ -550,6 +621,20 @@
 
         .freeform-section textarea::placeholder {
             color: #555;
+            font-size: 0.85rem;
+        }
+
+        .freeform-char-count {
+            font-size: 0.7rem;
+            color: #444;
+            text-align: right;
+            margin-top: 0.3rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .freeform-char-count.visible {
+            opacity: 1;
         }
 
         .freeform-label {
@@ -729,6 +814,148 @@
             transform: translateX(-50%) translateY(0);
         }
 
+        /* Onboarding overlay */
+        .onboarding-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .onboarding-overlay.hidden {
+            display: none;
+        }
+
+        .onboarding-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 2.5rem 2rem 2rem;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            color: #1a1a2e;
+        }
+
+        .onboarding-card h2 {
+            font-size: 1.6rem;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .onboarding-card p {
+            font-size: 0.95rem;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+        }
+
+        .onboarding-card .onboarding-context {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+
+        .onboarding-steps {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .onboarding-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .onboarding-step-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #f0f0ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .onboarding-step-label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .onboarding-step-arrow {
+            display: flex;
+            align-items: center;
+            color: #ccc;
+            font-size: 1.2rem;
+            margin-top: -1rem;
+        }
+
+        .onboarding-got-it {
+            padding: 0.8rem 2.5rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .onboarding-got-it:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Step badges */
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.3rem;
+            height: 1.3rem;
+            border-radius: 50%;
+            background: #2a2a4e;
+            color: #667eea;
+            font-size: 0.65rem;
+            font-weight: 700;
+            margin-right: 0.5rem;
+            transition: all 0.3s;
+            vertical-align: middle;
+        }
+
+        .step-badge.completed {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        /* Dimmed/disabled states */
+        .section-dimmed {
+            opacity: 0.4;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .section-hint {
+            font-size: 0.8rem;
+            color: #667eea;
+            font-style: italic;
+            margin-bottom: 0.75rem;
+        }
+
         .feed-tab-bar {
             display: flex;
             gap: 0;
@@ -881,6 +1108,32 @@
     </style>
 </head>
 <body>
+    <!-- Onboarding overlay (first visit only) -->
+    <div class="onboarding-overlay" id="onboardingOverlay">
+        <div class="onboarding-card">
+            <h2>Welcome to Vibe Check!</h2>
+            <p>Pick your name, choose a vibe, answer a few prompts, and check in. Takes 2 minutes.</p>
+            <div class="onboarding-steps">
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">👤</div>
+                    <span class="onboarding-step-label">Pick name</span>
+                </div>
+                <div class="onboarding-step-arrow">→</div>
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">✨</div>
+                    <span class="onboarding-step-label">Pick vibe</span>
+                </div>
+                <div class="onboarding-step-arrow">→</div>
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">✅</div>
+                    <span class="onboarding-step-label">Check in</span>
+                </div>
+            </div>
+            <p class="onboarding-context">Your team lead uses the sidebar to run through everyone during standup.</p>
+            <button class="onboarding-got-it" id="onboardingDismiss">Got it</button>
+        </div>
+    </div>
+
     <!-- Floating particles background -->
     <canvas id="particleCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.4;"></canvas>
 
@@ -913,8 +1166,12 @@
         <h1>vibe check</h1>
         <p class="subtitle">how are you showing up today?</p>
 
+        <div class="section-label"><span class="step-badge" id="stepBadge1">1</span>Pick your name</div>
         <div class="name-picker" id="namePicker"></div>
 
+        <div id="vibeSection">
+        <div class="section-label"><span class="step-badge" id="stepBadge2">2</span>Choose your vibe</div>
+        <div id="vibeHint" class="section-hint" style="display:none;">pick your name first</div>
         <div class="tab-bar">
             <button class="tab active" data-tab="emoji">Emoji</button>
             <button class="tab" data-tab="word">Word</button>
@@ -942,27 +1199,67 @@
             </div>
         </div>
 
-        <div class="freeform-section">
-            <p class="freeform-label">how are you feeling today?</p>
-            <textarea id="feelingInput" placeholder="in a sentence or less..." maxlength="200" rows="2"></textarea>
+        </div><!-- end vibeSection -->
+
+        <div id="promptsSection">
+        <div class="section-label"><span class="step-badge" id="stepBadge3">3</span>Answer the prompts</div>
+
+        <div class="freeform-section" data-prompt="feeling">
+            <div class="freeform-header" onclick="togglePrompt(this)">
+                <span class="freeform-header-icon">💭</span>
+                <span class="freeform-header-title">How are you feeling?</span>
+                <span class="freeform-header-indicator"></span>
+                <span class="freeform-header-chevron">▶</span>
+            </div>
+            <div class="freeform-body">
+                <textarea id="feelingInput" placeholder="good vibes, bad vibes, just vibes..." maxlength="200" rows="2"></textarea>
+                <div class="freeform-char-count" id="feelingCount">0/200</div>
+            </div>
         </div>
 
-        <div class="freeform-section">
-            <p class="freeform-label">one thing you're looking forward to?</p>
-            <textarea id="lookingForwardInput" placeholder="big or small, anything counts..." maxlength="200" rows="2"></textarea>
+        <div class="freeform-section" data-prompt="lookingForward">
+            <div class="freeform-header" onclick="togglePrompt(this)">
+                <span class="freeform-header-icon">🌅</span>
+                <span class="freeform-header-title">Looking forward to?</span>
+                <span class="freeform-header-indicator"></span>
+                <span class="freeform-header-chevron">▶</span>
+            </div>
+            <div class="freeform-body">
+                <textarea id="lookingForwardInput" placeholder="weekend? a project? lunch?" maxlength="200" rows="2"></textarea>
+                <div class="freeform-char-count" id="lookingForwardCount">0/200</div>
+            </div>
         </div>
 
-        <div class="freeform-section">
-            <p class="freeform-label">something you were proud of this week?</p>
-            <textarea id="proudOfInput" placeholder="a win, a moment, a thing you shipped..." maxlength="200" rows="2"></textarea>
+        <div class="freeform-section" data-prompt="proudOf">
+            <div class="freeform-header" onclick="togglePrompt(this)">
+                <span class="freeform-header-icon">🏆</span>
+                <span class="freeform-header-title">Proud of?</span>
+                <span class="freeform-header-indicator"></span>
+                <span class="freeform-header-chevron">▶</span>
+            </div>
+            <div class="freeform-body">
+                <textarea id="proudOfInput" placeholder="big or small, it counts" maxlength="200" rows="2"></textarea>
+                <div class="freeform-char-count" id="proudOfCount">0/200</div>
+            </div>
         </div>
 
-        <div class="freeform-section">
-            <p class="freeform-label">anything we need to talk about today?</p>
-            <textarea id="talkAboutInput" placeholder="blockers, ideas, stuff on your mind..." maxlength="200" rows="2"></textarea>
+        <div class="freeform-section expanded" data-prompt="talkAbout">
+            <div class="freeform-header" onclick="togglePrompt(this)">
+                <span class="freeform-header-icon">🗣️</span>
+                <span class="freeform-header-title">Need to discuss?</span>
+                <span class="freeform-header-indicator"></span>
+                <span class="freeform-header-chevron">▶</span>
+            </div>
+            <div class="freeform-body">
+                <textarea id="talkAboutInput" placeholder="blockers, ideas, hot takes..." maxlength="200" rows="2"></textarea>
+                <div class="freeform-char-count" id="talkAboutCount">0/200</div>
+            </div>
         </div>
 
-        <button class="submit-btn" id="submitBtn" disabled>check in</button>
+        </div><!-- end promptsSection -->
+
+        <div class="section-label"><span class="step-badge" id="stepBadge4">4</span>Check in</div>
+        <button class="submit-btn" id="submitBtn" disabled>pick a vibe to check in</button>
 
         <div class="feed">
             <div class="feed-tab-bar">
@@ -1225,9 +1522,11 @@
             const btn = document.getElementById('submitBtn');
             btn.textContent = '✓ checked in!';
             btn.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+            document.getElementById('stepBadge4').textContent = '✓';
+            document.getElementById('stepBadge4').classList.add('completed');
             setTimeout(() => {
-                btn.textContent = 'check in';
                 btn.style.background = '';
+                updateStepProgress();
             }, 2000);
         };
 
@@ -1626,6 +1925,108 @@
                 link.href = 'game.html?team=' + encodeURIComponent(teamParam);
             }
         })();
+
+        // Onboarding: first-visit detection
+        (() => {
+            const overlay = document.getElementById('onboardingOverlay');
+            if (localStorage.getItem('vibecheck-returning')) {
+                overlay.classList.add('hidden');
+            }
+            document.getElementById('onboardingDismiss').onclick = () => {
+                localStorage.setItem('vibecheck-returning', '1');
+                overlay.classList.add('hidden');
+            };
+        })();
+
+        // Step progress and empty-state management
+        function updateStepProgress() {
+            const badge1 = document.getElementById('stepBadge1');
+            const badge2 = document.getElementById('stepBadge2');
+            const badge3 = document.getElementById('stepBadge3');
+            const badge4 = document.getElementById('stepBadge4');
+            const vibeSection = document.getElementById('vibeSection');
+            const promptsSection = document.getElementById('promptsSection');
+            const vibeHint = document.getElementById('vibeHint');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const nameSelected = !!selectedName;
+            const vibeSelected = !!state.selection;
+
+            // Step 1: name
+            if (nameSelected) {
+                badge1.textContent = '✓';
+                badge1.classList.add('completed');
+            } else {
+                badge1.textContent = '1';
+                badge1.classList.remove('completed');
+            }
+
+            // Step 2: vibe
+            if (vibeSelected) {
+                badge2.textContent = '✓';
+                badge2.classList.add('completed');
+            } else {
+                badge2.textContent = '2';
+                badge2.classList.remove('completed');
+            }
+
+            // Step 3: prompts (completed if any text entered)
+            const anyPrompt = document.getElementById('feelingInput').value.trim() ||
+                              document.getElementById('lookingForwardInput').value.trim() ||
+                              document.getElementById('proudOfInput').value.trim() ||
+                              document.getElementById('talkAboutInput').value.trim();
+            if (anyPrompt) {
+                badge3.textContent = '✓';
+                badge3.classList.add('completed');
+            } else {
+                badge3.textContent = '3';
+                badge3.classList.remove('completed');
+            }
+
+            // Step 4: always shows 4 until submitted (handled by success flash)
+            badge4.textContent = '4';
+            badge4.classList.remove('completed');
+
+            // Dim vibe section if no name selected
+            if (!nameSelected) {
+                vibeSection.classList.add('section-dimmed');
+                vibeHint.style.display = 'block';
+            } else {
+                vibeSection.classList.remove('section-dimmed');
+                vibeHint.style.display = 'none';
+            }
+
+            // Dim prompts section if no name selected
+            if (!nameSelected) {
+                promptsSection.classList.add('section-dimmed');
+            } else {
+                promptsSection.classList.remove('section-dimmed');
+            }
+
+            // Update submit button text based on state
+            if (!nameSelected) {
+                submitBtn.textContent = 'pick your name first';
+            } else if (!vibeSelected) {
+                submitBtn.textContent = 'pick a vibe to check in';
+            } else {
+                submitBtn.textContent = 'check in';
+            }
+        }
+
+        // Hook step progress into existing updateSubmitBtn
+        const _originalUpdateSubmitBtn = updateSubmitBtn;
+        updateSubmitBtn = function() {
+            _originalUpdateSubmitBtn();
+            updateStepProgress();
+        };
+
+        // Listen for typing in prompts to update badge 3
+        ['feelingInput', 'lookingForwardInput', 'proudOfInput', 'talkAboutInput'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateStepProgress);
+        });
+
+        // Initial step progress render
+        updateStepProgress();
     </script>
 </body>
 </html>
