@@ -123,7 +123,7 @@ const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','�
 // ============================================================
 // GAME STATE
 // ============================================================
-let state = 'title'; // title, nameSelect, overworld, dialogue, encounter, battle, complete
+let state = 'title'; // title, nameSelect, intro, overworld, dialogue, encounter, battle, complete
 let playerName = null;
 let player = { x: 9, y: 10, px: 9*TILE, py: 10*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
 let keys = {};
@@ -146,6 +146,13 @@ let transitionType = null;
 let transitionCallback = null;
 let completeTimer = 0;
 let particles = [];
+
+// Intro sequence state
+let introTimer = 0;
+let introPhase = 'walk'; // walk, flash, text
+let introPlayerY = 0;
+let introFlashTimer = 0;
+let introTextTimer = 0;
 
 // Direction: 0=down, 1=up, 2=left, 3=right
 const DIR_DX = [0, 0, -1, 1];
@@ -658,6 +665,226 @@ function drawNameSelect() {
 }
 
 // ============================================================
+// INTRO CINEMATIC SEQUENCE
+// ============================================================
+const INTRO_ROAD_LENGTH = 20; // tiles tall
+const INTRO_MAP_W = 10; // tiles wide
+
+function drawIntroTile(tx, ty, type, offsetY) {
+    const x = tx * TILE + (CANVAS_W - INTRO_MAP_W * TILE) / 2;
+    const y = ty * TILE + offsetY;
+    const T = TILE;
+    const s = T / 16;
+
+    if (y < -TILE || y > CANVAS_H + TILE) return; // cull offscreen
+
+    switch(type) {
+        case 'grass':
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, T, T);
+            ctx.fillStyle = PAL.lightGreen;
+            if ((tx + ty) % 3 === 0) {
+                ctx.fillRect(x+3*s, y+6*s, 3*s, 4*s);
+                ctx.fillRect(x+9*s, y+10*s, 3*s, 4*s);
+            }
+            break;
+        case 'path':
+            ctx.fillStyle = PAL.tan;
+            ctx.fillRect(x, y, T, T);
+            ctx.fillStyle = PAL.lightTan;
+            ctx.fillRect(x+2*s, y+2*s, 5*s, 5*s);
+            ctx.fillRect(x+10*s, y+8*s, 5*s, 5*s);
+            break;
+        case 'tree':
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, T, T);
+            ctx.fillStyle = PAL.darkBrown;
+            ctx.fillRect(x+6*s, y+10*s, 4*s, 6*s);
+            ctx.fillStyle = PAL.darkGreen;
+            ctx.fillRect(x+2*s, y+2*s, 12*s, 10*s);
+            ctx.fillRect(x+4*s, y+0, 8*s, 4*s);
+            ctx.fillStyle = PAL.lightGreen;
+            ctx.fillRect(x+4*s, y+3*s, 4*s, 3*s);
+            break;
+        case 'building':
+            // Palace/office building
+            ctx.fillStyle = '#e8e0d0';
+            ctx.fillRect(x, y, T, T);
+            ctx.fillStyle = '#b8a890';
+            ctx.fillRect(x, y, T, 3*s);
+            // Windows
+            ctx.fillStyle = '#68b8e8';
+            ctx.fillRect(x+3*s, y+5*s, 4*s, 4*s);
+            ctx.fillRect(x+9*s, y+5*s, 4*s, 4*s);
+            break;
+        case 'roof':
+            ctx.fillStyle = '#6850a0';
+            ctx.fillRect(x, y, T, T);
+            ctx.fillStyle = '#8068b8';
+            ctx.fillRect(x+2*s, y+4*s, 12*s, 4*s);
+            // Spire accent
+            ctx.fillStyle = PAL.yellow;
+            ctx.fillRect(x+7*s, y+0, 3*s, 4*s);
+            break;
+        case 'door':
+            ctx.fillStyle = '#e8e0d0';
+            ctx.fillRect(x, y, T, T);
+            // Door frame
+            ctx.fillStyle = PAL.darkBrown;
+            ctx.fillRect(x+5*s, y+4*s, 6*s, 12*s);
+            ctx.fillStyle = PAL.brown;
+            ctx.fillRect(x+6*s, y+5*s, 4*s, 11*s);
+            break;
+    }
+}
+
+function getIntroMap() {
+    // 10 wide x 20 tall map
+    // Building at top (rows 0-3), path down the middle, trees on sides
+    const map = [];
+    for (let row = 0; row < INTRO_ROAD_LENGTH; row++) {
+        const r = [];
+        for (let col = 0; col < INTRO_MAP_W; col++) {
+            if (row === 0) {
+                // Roof row
+                if (col >= 3 && col <= 6) r.push('roof');
+                else r.push('tree');
+            } else if (row === 1) {
+                // Building upper
+                if (col >= 3 && col <= 6) r.push('building');
+                else r.push('tree');
+            } else if (row === 2) {
+                // Building lower with door
+                if (col === 4 || col === 5) r.push('door');
+                else if (col === 3 || col === 6) r.push('building');
+                else r.push('tree');
+            } else if (row === 3) {
+                // Path in front of building
+                if (col >= 3 && col <= 6) r.push('path');
+                else r.push('grass');
+            } else {
+                // Road section: trees on edges, grass, path in middle
+                if (col === 0 || col === 9) r.push('tree');
+                else if (col === 1 || col === 8) {
+                    if (row % 3 === 0) r.push('tree');
+                    else r.push('grass');
+                } else if (col === 4 || col === 5) r.push('path');
+                else r.push('grass');
+            }
+        }
+        map.push(r);
+    }
+    return map;
+}
+
+const INTRO_MAP = getIntroMap();
+
+function updateIntro() {
+    introTimer++;
+
+    if (introPhase === 'walk') {
+        // Auto-walk upward for ~2.5 seconds (150 frames at 60fps)
+        introPlayerY -= 1.2;
+        if (introTimer > 140) {
+            introPhase = 'flash';
+            introFlashTimer = 0;
+        }
+    } else if (introPhase === 'flash') {
+        introFlashTimer++;
+        if (introFlashTimer > 40) {
+            introPhase = 'text';
+            introTextTimer = 0;
+        }
+    } else if (introPhase === 'text') {
+        introTextTimer++;
+        // Auto-advance after showing text for 2.5 seconds
+        if (introTextTimer > 150) {
+            transitionTimer = 30;
+            transitionCallback = () => {
+                state = 'dialogue';
+                dialogueLines = [
+                    'Welcome to VIBE ISLAND, ' + playerName + '!',
+                    'Explore and visit each station.',
+                    'Walk up and press SPACE to interact.',
+                    'Complete all 5 to finish your check-in!'
+                ];
+                dialogueIdx = 0;
+                dialogueCallback = () => { state = 'overworld'; };
+            };
+            introPhase = 'done';
+        }
+    }
+}
+
+function drawIntro() {
+    updateIntro();
+
+    if (introPhase === 'walk' || introPhase === 'flash') {
+        // Calculate camera offset (follows player)
+        const cameraY = introPlayerY + 80;
+
+        // Background fill
+        ctx.fillStyle = PAL.green;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Draw intro map
+        for (let row = 0; row < INTRO_ROAD_LENGTH; row++) {
+            const screenY = row * TILE - cameraY + CANVAS_H / 2;
+            if (screenY > -TILE && screenY < CANVAS_H + TILE) {
+                for (let col = 0; col < INTRO_MAP_W; col++) {
+                    drawIntroTile(col, 0, INTRO_MAP[row][col], screenY);
+                }
+            }
+        }
+
+        // Draw player character (centered, walking up)
+        const playerScreenX = (CANVAS_W - INTRO_MAP_W * TILE) / 2 + 4 * TILE + TILE/4;
+        const playerScreenY = CANVAS_H / 2 - 12;
+        const walkFrame = Math.floor(introTimer / 10) % 4;
+        drawCharSprite(playerScreenX, playerScreenY, playerName || 'Ben', 1, walkFrame, 1.5);
+
+        // Battle transition flash effect
+        if (introPhase === 'flash') {
+            const f = introFlashTimer;
+            // Alternating black/white flashes (Pokemon style)
+            if (f < 6 || (f > 10 && f < 16) || (f > 20 && f < 26)) {
+                ctx.fillStyle = `rgba(255,255,255,${0.9 - (f % 10) * 0.05})`;
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            } else if ((f > 6 && f < 10) || (f > 16 && f < 20) || (f > 26 && f < 30)) {
+                ctx.fillStyle = `rgba(0,0,0,${0.9 - (f % 10) * 0.05})`;
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            }
+            // Final fade to black
+            if (f > 30) {
+                const alpha = Math.min(1, (f - 30) / 10);
+                ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            }
+        }
+    } else if (introPhase === 'text') {
+        // Black background with battle-style text
+        ctx.fillStyle = PAL.black;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Battle encounter dialogue box at bottom
+        drawBox(8, CANVAS_H - 80, CANVAS_W - 16, 72);
+
+        // "A wild TEAM MEETING appeared!" with typewriter effect
+        const fullText = 'A wild TEAM MEETING appeared!';
+        const visibleChars = Math.min(fullText.length, Math.floor(introTextTimer / 3));
+        const displayText = fullText.substring(0, visibleChars);
+        drawText(displayText, 24, CANVAS_H - 58, PAL.black, 1.2);
+
+        // Blinking indicator after text is fully revealed
+        if (visibleChars >= fullText.length && Math.floor(Date.now() / 400) % 2 === 0) {
+            ctx.fillStyle = PAL.black;
+            ctx.fillRect(CANVAS_W - 32, CANVAS_H - 20, 8, 6);
+            ctx.fillRect(CANVAS_W - 30, CANVAS_H - 14, 4, 3);
+        }
+    }
+}
+
+// ============================================================
 // OVERWORLD
 // ============================================================
 function drawOverworld() {
@@ -1120,17 +1347,21 @@ function handleAction() {
         case 'title':
             state = 'nameSelect';
             break;
+        case 'intro':
+            // Allow skipping the text phase
+            if (introPhase === 'text' && introTextTimer > 30) {
+                introTextTimer = 151; // trigger transition
+            }
+            break;
         case 'nameSelect':
             playerName = TEAM[nameSelectIdx];
-            state = 'dialogue';
-            dialogueLines = [
-                'Welcome to VIBE ISLAND, ' + playerName + '!',
-                'Explore and visit each station.',
-                'Walk up and press SPACE to interact.',
-                'Complete all 5 to finish your check-in!'
-            ];
-            dialogueIdx = 0;
-            dialogueCallback = () => { state = 'overworld'; };
+            // Start cinematic intro
+            state = 'intro';
+            introTimer = 0;
+            introPhase = 'walk';
+            introPlayerY = (INTRO_ROAD_LENGTH - 4) * TILE; // start near bottom
+            introFlashTimer = 0;
+            introTextTimer = 0;
             break;
         case 'dialogue':
             dialogueIdx++;
@@ -1304,6 +1535,9 @@ function gameLoop() {
             break;
         case 'nameSelect':
             drawNameSelect();
+            break;
+        case 'intro':
+            drawIntro();
             break;
         case 'overworld':
             movePlayer();
