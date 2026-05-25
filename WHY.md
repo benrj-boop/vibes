@@ -27,6 +27,8 @@ In our first session using this format, we learned about a genuinely fascinating
 
 ## Where this comes from
 
-This meeting format started during COVID, with a globally distributed team. The lesson from years of remote-first work — including research from companies like Atlassian on distributed team effectiveness — is clear: remote work IS possible, but only if you're more intentional about connection, not less. You can't rely on proximity to build cohesion. You need rituals that do it on purpose.
+This meeting format started during COVID, with a globally distributed team. The lesson from years of remote-first work is clear: remote work IS possible, but only if you're more intentional about connection, not less. You can't rely on proximity to build cohesion. You need rituals that do it on purpose.
+
+Atlassian's "Team Anywhere" research backs this up. After going fully distributed in 2020, they found that teams using structured connection rituals outperformed those relying on organic or serendipitous interaction. Their data showed a "connection decay" curve — team bonds weaken measurably after ~4 months without intentional touchpoints. The fix wasn't mandating office days; it was investing in quality rituals at the right cadence. As their VP of Team Anywhere put it: "The companies that win will be the ones that invest in intentional connection, not the ones that mandate presence."
 
 Vibes is one of those rituals. It takes 15 minutes a week and it changes everything.
