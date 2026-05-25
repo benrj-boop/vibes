@@ -766,6 +766,17 @@
 
         .edit-modal-content .freeform-section {
             margin-bottom: 1rem;
+            border: none;
+            border-radius: 0;
+            overflow: visible;
+        }
+
+        .edit-modal-content .freeform-section textarea {
+            border-radius: 12px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            padding: 0.75rem 1rem;
+            min-height: 60px;
         }
 
         .edit-modal-actions {
@@ -1258,7 +1269,7 @@
 
         </div><!-- end promptsSection -->
 
-        <div class="section-label"><span class="step-badge" id="stepBadge4">4</span>Check in</div>
+        <div class="section-label" style="margin-top:1rem"><span class="step-badge" id="stepBadge4">4</span>Check in</div>
         <button class="submit-btn" id="submitBtn" disabled>pick a vibe to check in</button>
 
         <div class="feed">
@@ -1470,6 +1481,44 @@
             document.getElementById('submitBtn').disabled = !state.selection || !selectedName;
         }
 
+        // Accordion prompt toggle
+        function togglePrompt(headerEl) {
+            const section = headerEl.closest('.freeform-section');
+            section.classList.toggle('expanded');
+            if (section.classList.contains('expanded')) {
+                const textarea = section.querySelector('textarea');
+                setTimeout(() => textarea.focus(), 260);
+            }
+        }
+
+        // Character counters + has-content indicator
+        const promptTextareas = [
+            { input: 'feelingInput', counter: 'feelingCount' },
+            { input: 'lookingForwardInput', counter: 'lookingForwardCount' },
+            { input: 'proudOfInput', counter: 'proudOfCount' },
+            { input: 'talkAboutInput', counter: 'talkAboutCount' }
+        ];
+
+        promptTextareas.forEach(({ input, counter }) => {
+            const textarea = document.getElementById(input);
+            const counterEl = document.getElementById(counter);
+            const section = textarea.closest('.freeform-section');
+
+            textarea.addEventListener('input', () => {
+                const len = textarea.value.length;
+                counterEl.textContent = `${len}/200`;
+                section.classList.toggle('has-content', len > 0);
+            });
+
+            textarea.addEventListener('focus', () => {
+                counterEl.classList.add('visible');
+            });
+
+            textarea.addEventListener('blur', () => {
+                counterEl.classList.remove('visible');
+            });
+        });
+
         // Submit
         document.getElementById('submitBtn').onclick = () => {
             if (!selectedName || !state.selection) return;
@@ -1517,6 +1566,16 @@
             document.getElementById('lookingForwardInput').value = '';
             document.getElementById('proudOfInput').value = '';
             document.getElementById('talkAboutInput').value = '';
+
+            // Reset accordion state
+            document.querySelectorAll('.freeform-section').forEach(s => {
+                s.classList.remove('has-content');
+                if (s.dataset.prompt !== 'talkAbout') s.classList.remove('expanded');
+            });
+            document.querySelectorAll('.freeform-char-count').forEach(c => {
+                c.textContent = '0/200';
+                c.classList.remove('visible');
+            });
 
             // Brief success flash
             const btn = document.getElementById('submitBtn');
