@@ -215,6 +215,202 @@ function drawTextCentered(text, x, y, color = PAL.black, scale = 1) {
 }
 
 // ============================================================
+// CHARACTER SPRITE DATA (16x24 pixel art, stored as color arrays)
+// Each character has: front1, front2 (idle frames), back, left, right
+// Colors: 0=transparent, 1=skin, 2=hair, 3=shirt, 4=pants, 5=shoes, 6=accent(hat/glasses)
+// ============================================================
+const CHAR_PALETTES = {
+    Ben:      { skin:'#f0d8a0', hair:'#5c3a1e', shirt:'#3060b8', pants:'#1e3050', shoes:'#222', accent:'#c83038' }, // red cap
+    Karina:   { skin:'#f0d8a0', hair:'#e8c840', shirt:'#2d8b4e', pants:'#1e4d2b', shoes:'#5c3a1e', accent:'#88d058' }, // blonde, green
+    Terrence: { skin:'#c89060', hair:'#181818', shirt:'#483878', pants:'#282040', shoes:'#222', accent:'#7848a0' }, // purple jacket
+    Jun:      { skin:'#f0d0a0', hair:'#101010', shirt:'#f0f0f0', pants:'#384058', shoes:'#333', accent:'#88bbee' }, // glasses, white shirt
+    Aditya:   { skin:'#c8a060', hair:'#181010', shirt:'#e89020', pants:'#483820', shoes:'#222', accent:'#f8d030' }, // orange shirt
+};
+
+// Sprite pixel maps (16 wide x 24 tall) — simplified representations
+// Each sprite is defined as drawing instructions for efficiency
+function drawCharSprite(x, y, charName, dir, frame, scale) {
+    scale = scale || 1;
+    const pal = CHAR_PALETTES[charName];
+    if (!pal) return;
+
+    const s = scale; // shorthand
+    const bob = (frame % 2 === 0) ? 0 : -1 * s; // idle bob
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(x + 3*s, y + 21*s, 10*s, 3*s);
+
+    if (dir === 1) {
+        // BACK VIEW
+        // Hair (covers head from back)
+        ctx.fillStyle = pal.hair;
+        ctx.fillRect(x+4*s, y+bob+0*s, 8*s, 8*s);
+        // Hat for Ben
+        if (charName === 'Ben') {
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+3*s, y+bob+0*s, 10*s, 3*s);
+        }
+        // Body/shirt
+        ctx.fillStyle = pal.shirt;
+        ctx.fillRect(x+4*s, y+bob+8*s, 8*s, 8*s);
+        // Arms
+        ctx.fillRect(x+2*s, y+bob+9*s, 2*s, 6*s);
+        ctx.fillRect(x+12*s, y+bob+9*s, 2*s, 6*s);
+        // Pants
+        ctx.fillStyle = pal.pants;
+        ctx.fillRect(x+4*s, y+bob+16*s, 8*s, 4*s);
+        // Legs/shoes
+        ctx.fillStyle = pal.shoes;
+        if (frame % 2 === 0) {
+            ctx.fillRect(x+4*s, y+bob+20*s, 3*s, 3*s);
+            ctx.fillRect(x+9*s, y+bob+21*s, 3*s, 2*s);
+        } else {
+            ctx.fillRect(x+4*s, y+bob+21*s, 3*s, 2*s);
+            ctx.fillRect(x+9*s, y+bob+20*s, 3*s, 3*s);
+        }
+    } else if (dir === 2) {
+        // LEFT VIEW
+        // Head
+        ctx.fillStyle = pal.skin;
+        ctx.fillRect(x+5*s, y+bob+1*s, 6*s, 7*s);
+        // Hair
+        ctx.fillStyle = pal.hair;
+        ctx.fillRect(x+4*s, y+bob+0*s, 8*s, 3*s);
+        ctx.fillRect(x+9*s, y+bob+1*s, 3*s, 5*s);
+        if (charName === 'Ben') {
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+3*s, y+bob+0*s, 9*s, 2*s);
+            ctx.fillRect(x+2*s, y+bob+0*s, 3*s, 2*s);
+        }
+        if (charName === 'Jun') {
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+4*s, y+bob+4*s, 3*s, 1*s);
+        }
+        // Eye
+        ctx.fillStyle = '#081820';
+        ctx.fillRect(x+5*s, y+bob+4*s, 2*s, 2*s);
+        // Body
+        ctx.fillStyle = pal.shirt;
+        ctx.fillRect(x+5*s, y+bob+8*s, 7*s, 8*s);
+        // Arm
+        ctx.fillStyle = pal.skin;
+        ctx.fillRect(x+4*s, y+bob+9*s, 2*s, 5*s);
+        // Pants
+        ctx.fillStyle = pal.pants;
+        ctx.fillRect(x+5*s, y+bob+16*s, 7*s, 4*s);
+        // Shoes
+        ctx.fillStyle = pal.shoes;
+        if (frame % 2 === 0) {
+            ctx.fillRect(x+5*s, y+bob+20*s, 3*s, 3*s);
+            ctx.fillRect(x+9*s, y+bob+21*s, 3*s, 2*s);
+        } else {
+            ctx.fillRect(x+5*s, y+bob+21*s, 3*s, 2*s);
+            ctx.fillRect(x+9*s, y+bob+20*s, 3*s, 3*s);
+        }
+    } else if (dir === 3) {
+        // RIGHT VIEW
+        ctx.fillStyle = pal.skin;
+        ctx.fillRect(x+5*s, y+bob+1*s, 6*s, 7*s);
+        // Hair
+        ctx.fillStyle = pal.hair;
+        ctx.fillRect(x+4*s, y+bob+0*s, 8*s, 3*s);
+        ctx.fillRect(x+4*s, y+bob+1*s, 3*s, 5*s);
+        if (charName === 'Ben') {
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+4*s, y+bob+0*s, 9*s, 2*s);
+            ctx.fillRect(x+11*s, y+bob+0*s, 3*s, 2*s);
+        }
+        if (charName === 'Jun') {
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+9*s, y+bob+4*s, 3*s, 1*s);
+        }
+        // Eye
+        ctx.fillStyle = '#081820';
+        ctx.fillRect(x+9*s, y+bob+4*s, 2*s, 2*s);
+        // Body
+        ctx.fillStyle = pal.shirt;
+        ctx.fillRect(x+4*s, y+bob+8*s, 7*s, 8*s);
+        // Arm
+        ctx.fillStyle = pal.skin;
+        ctx.fillRect(x+10*s, y+bob+9*s, 2*s, 5*s);
+        // Pants
+        ctx.fillStyle = pal.pants;
+        ctx.fillRect(x+4*s, y+bob+16*s, 7*s, 4*s);
+        // Shoes
+        ctx.fillStyle = pal.shoes;
+        if (frame % 2 === 0) {
+            ctx.fillRect(x+4*s, y+bob+20*s, 3*s, 3*s);
+            ctx.fillRect(x+8*s, y+bob+21*s, 3*s, 2*s);
+        } else {
+            ctx.fillRect(x+4*s, y+bob+21*s, 3*s, 2*s);
+            ctx.fillRect(x+8*s, y+bob+20*s, 3*s, 3*s);
+        }
+    } else {
+        // FRONT VIEW (dir === 0)
+        // Head
+        ctx.fillStyle = pal.skin;
+        ctx.fillRect(x+4*s, y+bob+1*s, 8*s, 7*s);
+        // Hair
+        ctx.fillStyle = pal.hair;
+        ctx.fillRect(x+3*s, y+bob+0*s, 10*s, 3*s);
+        ctx.fillRect(x+3*s, y+bob+1*s, 2*s, 4*s);
+        ctx.fillRect(x+11*s, y+bob+1*s, 2*s, 4*s);
+        // Character-specific features
+        if (charName === 'Ben') {
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+3*s, y+bob+0*s, 10*s, 2*s);
+        }
+        if (charName === 'Karina') {
+            // Longer blonde hair sides
+            ctx.fillStyle = pal.hair;
+            ctx.fillRect(x+2*s, y+bob+2*s, 2*s, 7*s);
+            ctx.fillRect(x+12*s, y+bob+2*s, 2*s, 7*s);
+        }
+        if (charName === 'Jun') {
+            // Glasses
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+4*s, y+bob+4*s, 4*s, 2*s);
+            ctx.fillRect(x+9*s, y+bob+4*s, 4*s, 2*s);
+            ctx.fillRect(x+8*s, y+bob+4*s, 1*s, 1*s);
+        }
+        // Eyes
+        ctx.fillStyle = '#081820';
+        ctx.fillRect(x+5*s, y+bob+4*s, 2*s, 2*s);
+        ctx.fillRect(x+9*s, y+bob+4*s, 2*s, 2*s);
+        // Body/shirt
+        ctx.fillStyle = pal.shirt;
+        ctx.fillRect(x+4*s, y+bob+8*s, 8*s, 8*s);
+        // Arms
+        ctx.fillRect(x+2*s, y+bob+9*s, 2*s, 6*s);
+        ctx.fillRect(x+12*s, y+bob+9*s, 2*s, 6*s);
+        // Accent detail on shirt
+        if (charName === 'Terrence') {
+            ctx.fillStyle = pal.accent;
+            ctx.fillRect(x+6*s, y+bob+9*s, 4*s, 2*s);
+        }
+        if (charName === 'Aditya') {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(x+6*s, y+bob+10*s, 4*s, 1*s);
+        }
+        // Pants
+        ctx.fillStyle = pal.pants;
+        ctx.fillRect(x+4*s, y+bob+16*s, 8*s, 4*s);
+        // Legs/shoes (animated)
+        ctx.fillStyle = pal.shoes;
+        if (frame % 2 === 0) {
+            ctx.fillRect(x+4*s, y+bob+20*s, 3*s, 3*s);
+            ctx.fillRect(x+9*s, y+bob+21*s, 3*s, 2*s);
+        } else {
+            ctx.fillRect(x+4*s, y+bob+21*s, 3*s, 2*s);
+            ctx.fillRect(x+9*s, y+bob+20*s, 3*s, 3*s);
+        }
+    }
+}
+
+let charSelectAnimTimer = 0;
+
+// ============================================================
 // SPRITE DRAWING (all pixel art via canvas)
 // ============================================================
 function drawTile(tx, ty, type) {
@@ -311,61 +507,11 @@ function drawNPC(npc) {
 function drawPlayer() {
     const x = Math.round(player.px);
     const y = Math.round(player.py);
-    const frame = player.step;
+    const frame = player.moving ? player.step : 0;
     const dir = player.dir;
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(x+3, y+13, 10, 3);
-
-    // Body
-    ctx.fillStyle = PAL.blue;
-    ctx.fillRect(x+4, y+6, 8, 8);
-
-    // Legs (animated)
-    ctx.fillStyle = PAL.darkBrown;
-    if (player.moving) {
-        if (frame % 2 === 0) {
-            ctx.fillRect(x+5, y+13, 3, 3);
-            ctx.fillRect(x+9, y+14, 3, 2);
-        } else {
-            ctx.fillRect(x+5, y+14, 3, 2);
-            ctx.fillRect(x+9, y+13, 3, 3);
-        }
-    } else {
-        ctx.fillRect(x+5, y+14, 3, 2);
-        ctx.fillRect(x+9, y+14, 3, 2);
-    }
-
-    // Head
-    ctx.fillStyle = PAL.lightTan;
-    ctx.fillRect(x+4, y+1, 8, 7);
-
-    // Hair
-    ctx.fillStyle = PAL.darkBrown;
-    ctx.fillRect(x+3, y+0, 10, 3);
-    ctx.fillRect(x+3, y+1, 2, 4);
-
-    // Eyes based on direction
-    ctx.fillStyle = PAL.black;
-    if (dir === 0) { // down
-        ctx.fillRect(x+5, y+4, 2, 2);
-        ctx.fillRect(x+9, y+4, 2, 2);
-    } else if (dir === 1) { // up
-        // Back of head - no eyes visible
-        ctx.fillStyle = PAL.darkBrown;
-        ctx.fillRect(x+4, y+1, 8, 5);
-    } else if (dir === 2) { // left
-        ctx.fillRect(x+4, y+4, 2, 2);
-    } else { // right
-        ctx.fillRect(x+10, y+4, 2, 2);
-    }
-
-    // Cap
-    ctx.fillStyle = PAL.red;
-    ctx.fillRect(x+4, y+0, 8, 2);
-    if (dir === 3) ctx.fillRect(x+12, y+0, 3, 2);
-    if (dir === 2) ctx.fillRect(x+1, y+0, 3, 2);
+    // Draw using character sprite system — offset to fit 16x16 tile from 16x24 sprite
+    drawCharSprite(x, y - 8, playerName || 'Ben', dir, frame, 1);
 }
 
 // ============================================================
@@ -434,32 +580,77 @@ function drawTitle() {
 }
 
 // ============================================================
-// NAME SELECT SCREEN
+// NAME SELECT SCREEN (Pokemon-style character select)
 // ============================================================
 function drawNameSelect() {
-    ctx.fillStyle = PAL.black;
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    charSelectAnimTimer++;
+    const animFrame = Math.floor(charSelectAnimTimer / 20) % 2;
 
-    // Border box
-    drawBox(16, 8, CANVAS_W-32, 24);
-    drawText('Who are you?', 24, 16, PAL.black, 1);
-
-    // Name options
-    const startY = 44;
-    const itemH = 20;
-    drawBox(40, startY - 4, CANVAS_W-80, TEAM.length * itemH + 8);
-
-    for (let i = 0; i < TEAM.length; i++) {
-        const y = startY + i * itemH;
-        const selected = i === nameSelectIdx;
-        if (selected) {
-            drawText('▶', 48, y + 2, PAL.black, 1);
+    // Light blue checkered/tiled background
+    for (let ty = 0; ty < ROWS; ty++) {
+        for (let tx = 0; tx < COLS; tx++) {
+            ctx.fillStyle = (tx + ty) % 2 === 0 ? '#a8d8f0' : '#90c8e8';
+            ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
+            // Subtle grid lines
+            ctx.fillStyle = '#80b8d8';
+            ctx.fillRect(tx * TILE, ty * TILE, 1, TILE);
+            ctx.fillRect(tx * TILE, ty * TILE, TILE, 1);
         }
-        drawText(TEAM[i], 62, y + 2, PAL.black, 1);
     }
 
-    // Instructions
-    drawText('UP/DOWN: select  SPACE: confirm', 30, CANVAS_H - 16, PAL.gray, 1);
+    // Top panel: character sprites in a row
+    const spriteAreaY = 16;
+    const spriteSpacing = 42;
+    const spriteStartX = (CANVAS_W - (TEAM.length * spriteSpacing)) / 2 + 12;
+
+    // Draw all character sprites (small, 1x scale)
+    for (let i = 0; i < TEAM.length; i++) {
+        const sx = spriteStartX + i * spriteSpacing;
+        const sy = spriteAreaY + 10;
+
+        // Highlight box for selected character
+        if (i === nameSelectIdx) {
+            // Animated selector border
+            ctx.fillStyle = '#f8d030';
+            ctx.fillRect(sx - 4, sy - 4, 24, 32);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(sx - 2, sy - 2, 20, 28);
+            ctx.fillStyle = (tx => (tx + i) % 2 === 0 ? '#a8d8f0' : '#90c8e8')(Math.floor(charSelectAnimTimer/10));
+            ctx.fillRect(sx - 1, sy - 1, 18, 26);
+        }
+
+        // Draw the sprite with idle animation
+        drawCharSprite(sx, sy, TEAM[i], 0, animFrame, 1);
+    }
+
+    // Bottom-left panel: dialogue box
+    const dlgX = 8;
+    const dlgY = CANVAS_H - 72;
+    const dlgW = 130;
+    const dlgH = 62;
+    drawBox(dlgX, dlgY, dlgW, dlgH);
+    drawText('Choose your', dlgX + 10, dlgY + 12, PAL.black, 1);
+    drawText('character.', dlgX + 10, dlgY + 24, PAL.black, 1);
+    // Show selected character name
+    ctx.fillStyle = PAL.black;
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText(TEAM[nameSelectIdx], dlgX + 10, dlgY + 44);
+    ctx.font = '7px monospace';
+
+    // Bottom-right panel: large preview
+    const prvX = CANVAS_W - 108;
+    const prvY = CANVAS_H - 72;
+    const prvW = 100;
+    const prvH = 62;
+    drawBox(prvX, prvY, prvW, prvH);
+
+    // Draw enlarged character (3x scale)
+    const bigX = prvX + (prvW - 48) / 2;
+    const bigY = prvY + 4;
+    drawCharSprite(bigX, bigY, TEAM[nameSelectIdx], 0, animFrame, 2.5);
+
+    // Navigation hints at very bottom
+    drawText('LEFT/RIGHT: select  SPACE: confirm', 24, CANVAS_H - 6, '#4080a0', 1);
 }
 
 // ============================================================
@@ -601,15 +792,8 @@ function drawBattle() {
     // Platform
     ctx.fillStyle = '#60a040';
     ctx.fillRect(playerSprX - 10, playerSprY + 34, 50, 8);
-    // Draw player from behind (larger)
-    ctx.fillStyle = PAL.blue;
-    ctx.fillRect(playerSprX + 4, playerSprY + 8, 24, 24);
-    ctx.fillStyle = PAL.darkBrown;
-    ctx.fillRect(playerSprX + 6, playerSprY, 20, 12);
-    ctx.fillStyle = PAL.red;
-    ctx.fillRect(playerSprX + 6, playerSprY - 2, 20, 4);
-    ctx.fillStyle = PAL.lightTan;
-    ctx.fillRect(playerSprX + 8, playerSprY + 2, 16, 8);
+    // Draw player from behind (larger) using character sprite
+    drawCharSprite(playerSprX, playerSprY - 4, playerName || 'Ben', 1, 0, 2);
 
     // Enemy info box (top left)
     drawBox(4, 4, 100, 28);
@@ -1053,9 +1237,9 @@ function submitTextInput() {
 // Arrow key handling for emoji picker and name select
 function handleArrowsForUI(key) {
     if (state === 'nameSelect') {
-        if (key === 'ArrowUp' || key === 'w' || key === 'W') {
+        if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
             nameSelectIdx = (nameSelectIdx - 1 + TEAM.length) % TEAM.length;
-        } else if (key === 'ArrowDown' || key === 's' || key === 'S') {
+        } else if (key === 'ArrowRight' || key === 'd' || key === 'D') {
             nameSelectIdx = (nameSelectIdx + 1) % TEAM.length;
         }
     } else if (state === 'battle' && battleState.phase === 'emoji') {
