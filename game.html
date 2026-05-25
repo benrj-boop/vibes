@@ -979,7 +979,7 @@ function drawTitle() {
     if (Math.floor(titleAnimTimer / 30) % 2 === 0) {
         ctx.fillStyle = PAL.white;
         ctx.font = '13px monospace';
-        ctx.fillText('PRESS START', CANVAS_W/2, 280);
+        ctx.fillText('PRESS SPACE TO START', CANVAS_W/2, 280);
     }
 
     ctx.textAlign = 'start';
@@ -1778,6 +1778,11 @@ function movePlayer() {
 // INPUT HANDLING
 // ============================================================
 document.addEventListener('keydown', (e) => {
+    // ESC from overworld exits to classic mode
+    if (e.key === 'Escape' && (state === 'overworld' || state === 'title')) {
+        window.location.href = 'index.html';
+        return;
+    }
     if (textInputActive) {
         if (e.key === 'Enter') {
             e.preventDefault();
