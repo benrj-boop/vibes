@@ -68,6 +68,105 @@
             left: -9999px;
             opacity: 0;
         }
+        /* Mobile touch controls */
+        .touch-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 180px;
+            pointer-events: none;
+            z-index: 200;
+        }
+        .touch-controls.visible {
+            display: block;
+        }
+        .dpad {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 150px;
+            height: 150px;
+            pointer-events: auto;
+        }
+        .dpad-btn {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.35);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.2rem;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        .dpad-btn:active, .dpad-btn.active {
+            background: rgba(255,255,255,0.4);
+            border-color: rgba(255,255,255,0.6);
+        }
+        .dpad-up { top: 0; left: 50px; }
+        .dpad-down { bottom: 0; left: 50px; }
+        .dpad-left { top: 50px; left: 0; }
+        .dpad-right { top: 50px; right: 0; }
+        .action-btn {
+            position: absolute;
+            bottom: 40px;
+            right: 30px;
+            width: 64px;
+            height: 64px;
+            background: rgba(200,48,56,0.4);
+            border: 2px solid rgba(200,48,56,0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.85);
+            font-size: 1.1rem;
+            font-family: monospace;
+            font-weight: bold;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            pointer-events: auto;
+        }
+        .action-btn:active, .action-btn.active {
+            background: rgba(200,48,56,0.7);
+            border-color: rgba(255,255,255,0.8);
+        }
+        /* Hide controls hint on touch devices */
+        .is-touch .controls-hint {
+            display: none;
+        }
+        /* Landscape suggestion for tiny screens */
+        .landscape-hint {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            color: #888;
+            font-family: monospace;
+            font-size: 0.9rem;
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        @media (max-width: 480px) and (orientation: portrait) {
+            .is-touch .landscape-hint {
+                display: flex;
+            }
+        }
+        /* Prevent overscroll on game container */
+        #gameContainer {
+            touch-action: none;
+        }
     </style>
 </head>
 <body>
@@ -77,6 +176,17 @@
     </div>
     <p class="controls-hint">ARROWS/WASD: move | SPACE/ENTER: interact | explore the island!</p>
     <input type="text" id="hiddenInput" maxlength="140" autocomplete="off" />
+
+    <div class="touch-controls" id="touchControls">
+        <div class="dpad">
+            <div class="dpad-btn dpad-up" data-dir="up">&#9650;</div>
+            <div class="dpad-btn dpad-down" data-dir="down">&#9660;</div>
+            <div class="dpad-btn dpad-left" data-dir="left">&#9664;</div>
+            <div class="dpad-btn dpad-right" data-dir="right">&#9654;</div>
+        </div>
+        <div class="action-btn" id="actionBtn">A</div>
+    </div>
+    <div class="landscape-hint" id="landscapeHint">Rotate your device to landscape for the best experience &#x1F504;</div>
 
 <script>
 // ============================================================
@@ -2497,6 +2607,102 @@ function handleClickAt(x, y) {
         handleAction();
     }
 }
+
+// ============================================================
+// MOBILE TOUCH CONTROLS
+// ============================================================
+(function() {
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!isTouchDevice) return;
+
+    document.body.classList.add('is-touch');
+    const touchControls = document.getElementById('touchControls');
+    touchControls.classList.add('visible');
+
+    const dirMap = {
+        up: 'ArrowUp',
+        down: 'ArrowDown',
+        left: 'ArrowLeft',
+        right: 'ArrowRight'
+    };
+
+    // D-pad buttons
+    const dpadBtns = document.querySelectorAll('.dpad-btn');
+    dpadBtns.forEach(btn => {
+        const dir = btn.dataset.dir;
+        const keyName = dirMap[dir];
+
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            keys[keyName] = true;
+            btn.classList.add('active');
+        }, { passive: false });
+
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            keys[keyName] = false;
+            btn.classList.remove('active');
+        }, { passive: false });
+
+        btn.addEventListener('touchcancel', (e) => {
+            keys[keyName] = false;
+            btn.classList.remove('active');
+        });
+    });
+
+    // Action button (equivalent to SPACE)
+    const actionBtn = document.getElementById('actionBtn');
+    actionBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        actionBtn.classList.add('active');
+        handleAction();
+    }, { passive: false });
+
+    actionBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        actionBtn.classList.remove('active');
+    }, { passive: false });
+
+    // Tap on canvas (not on controls) to interact when near NPC
+    canvas.addEventListener('touchstart', function(e) {
+        // If already handled by the existing touchstart for click-like interactions, skip NPC proximity check
+        // The existing handler already calls handleClickAt which handles encounters/menus
+        // We add NPC proximity interaction for overworld taps
+        if (state === 'overworld') {
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = CANVAS_W / rect.width;
+            const scaleY = CANVAS_H / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+
+            // Check if player is near an NPC and trigger interaction
+            for (const npc of NPCS) {
+                const dx = Math.abs(player.x - npc.x);
+                const dy = Math.abs(player.y - npc.y);
+                if (dx + dy <= 2) {
+                    e.preventDefault();
+                    handleAction();
+                    return;
+                }
+            }
+        }
+    }, { passive: false });
+
+    // Prevent scrolling/bouncing on the game container
+    document.getElementById('gameContainer').addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+
+    // Prevent default on touch controls area to avoid scroll
+    touchControls.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+})();
 
 // ============================================================
 // MAIN GAME LOOP
