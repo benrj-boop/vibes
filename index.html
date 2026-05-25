@@ -903,7 +903,7 @@
         <a href="https://stripe.enterprise.slack.com/messages/benrj" class="feedback-link" target="_blank">
             💬 got feedback? slack ben
         </a>
-        <a href="game.html" class="feedback-link" style="border-color:#764ba2;color:#764ba2;">
+        <a id="adventureLink" href="game.html" class="feedback-link" style="border-color:#764ba2;color:#764ba2;">
             🎮 adventure mode
         </a>
         <p class="made-with">made with vibes by APAC PMM</p>
@@ -1060,7 +1060,12 @@
             'surviving purely on vibes', 'one coffee away from greatness'
         ];
 
-        const TEAM = ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+        const TEAM = (() => {
+            const params = new URLSearchParams(window.location.search);
+            const teamParam = params.get('team');
+            if (teamParam) return teamParam.split(',').map(n => n.trim()).filter(Boolean);
+            return ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+        })();
         const SCRIPT_URL = 'https://script.google.com/a/macros/stripe.com/s/AKfycbxrTgdwlufPu8l-2IY0CVsiGQhmXcYTqSDxyKgQh6YnVyxdFAr4tdzU3YPKFGYPWBUD/exec';
 
         let state = { selection: null, type: null };
@@ -1612,6 +1617,15 @@
             requestAnimationFrame(animateParticles);
         }
         animateParticles();
+
+        // Pass team param through to adventure mode link
+        (() => {
+            const teamParam = new URLSearchParams(window.location.search).get('team');
+            if (teamParam) {
+                const link = document.getElementById('adventureLink');
+                link.href = 'game.html?team=' + encodeURIComponent(teamParam);
+            }
+        })();
     </script>
 </body>
 </html>

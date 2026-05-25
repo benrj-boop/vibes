@@ -20,10 +20,18 @@
             position: relative;
             width: 720px;
             height: 540px;
+            max-width: 100%;
+            aspect-ratio: 720 / 540;
             border: 6px solid #222;
             border-radius: 8px;
             background: #000;
             box-shadow: 0 0 40px rgba(0,0,0,0.8);
+        }
+        @media (max-width: 960px) {
+            #gameContainer {
+                width: 100%;
+                height: auto;
+            }
         }
         canvas {
             width: 100%;
@@ -117,13 +125,18 @@ const PAL = {
 // ============================================================
 // TEAM & DATA
 // ============================================================
-const TEAM = ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+const TEAM = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const teamParam = params.get('team');
+    if (teamParam) return teamParam.split(',').map(n => n.trim()).filter(Boolean);
+    return ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+})();
 const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','💪','😅','🫠','✨','🌊','🎯','🤯','😎','🥲','🫡','🦾','🌈','😬','🍕','⚡'];
 
 // ============================================================
 // GAME STATE
 // ============================================================
-let state = 'title'; // title, nameSelect, intro, overworld, dialogue, encounter, battle, snippetBattle, complete
+let state = 'title'; // title, nameSelect, intro, overworld, dialogue, encounter, battle, snippetBattle, pauseMenu, complete
 let playerName = null;
 let player = { x: 15, y: 12, px: 15*TILE, py: 12*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
 let keys = {};
@@ -148,6 +161,7 @@ let completeTimer = 0;
 let particles = [];
 let snippetBotDefeated = false;
 let snippetBattleState = null;
+let pauseMenuIdx = 0; // 0=Continue, 1=New Game, 2=Exit
 
 // Intro sequence state
 let introTimer = 0;
@@ -1778,9 +1792,29 @@ function movePlayer() {
 // INPUT HANDLING
 // ============================================================
 document.addEventListener('keydown', (e) => {
-    // ESC from overworld exits to classic mode
-    if (e.key === 'Escape' && (state === 'overworld' || state === 'title')) {
+    // ESC from overworld shows confirm dialog
+    if (e.key === 'Escape' && state === 'overworld') {
+        state = 'pauseMenu';
+        pauseMenuIdx = 0;
+        return;
+    }
+    if (e.key === 'Escape' && state === 'title') {
         window.location.href = 'index.html';
+        return;
+    }
+    if (e.key === 'Escape' && state === 'pauseMenu') {
+        state = 'overworld';
+        return;
+    }
+    if (state === 'pauseMenu') {
+        e.preventDefault();
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+            pauseMenuIdx = (pauseMenuIdx - 1 + 3) % 3;
+        } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+            pauseMenuIdx = (pauseMenuIdx + 1) % 3;
+        } else if (e.key === ' ' || e.key === 'Enter') {
+            handlePauseMenuAction();
+        }
         return;
     }
     if (textInputActive) {
@@ -1818,10 +1852,20 @@ function handleAction() {
             state = 'nameSelect';
             break;
         case 'intro':
-            // Allow skipping the text phase
-            if (introPhase === 'text' && introTextTimer > 30) {
-                introTextTimer = 151; // trigger transition
-            }
+            // SPACE skips entire intro and jumps to overworld
+            introPhase = 'done';
+            transitionTimer = 30;
+            transitionCallback = () => {
+                state = 'dialogue';
+                dialogueLines = [
+                    'Welcome to VIBE ISLAND, ' + playerName + '!',
+                    'Explore and visit each station.',
+                    'Walk up and press SPACE to interact.',
+                    'Complete all 5 to finish your check-in!'
+                ];
+                dialogueIdx = 0;
+                dialogueCallback = () => { state = 'overworld'; };
+            };
             break;
         case 'nameSelect':
             playerName = TEAM[nameSelectIdx];
@@ -2213,6 +2257,18 @@ function finishGame() {
 // ============================================================
 // MAIN GAME LOOP
 // ============================================================
+function drawPauseMenu() {
+    // Dim overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    // Dialog box
+    const bw = 320, bh = 64;
+    const bx = (CANVAS_W - bw) / 2, by = (CANVAS_H - bh) / 2;
+    drawBox(bx, by, bw, bh);
+    drawText('Exit to classic mode?', bx + 16, by + 16, PAL.black, 1.1);
+    drawText('SPACE=yes  ESC=cancel', bx + 16, by + 40, PAL.darkGray, 1);
+}
+
 function gameLoop() {
     // Water animation tick
     waterTick++;
@@ -2250,6 +2306,10 @@ function gameLoop() {
             break;
         case 'complete':
             drawComplete();
+            break;
+        case 'pauseMenu':
+            drawOverworld();
+            drawPauseMenu();
             break;
     }
 
