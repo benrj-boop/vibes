@@ -123,7 +123,7 @@ const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','�
 // ============================================================
 // GAME STATE
 // ============================================================
-let state = 'title'; // title, nameSelect, intro, overworld, dialogue, encounter, battle, complete
+let state = 'title'; // title, nameSelect, intro, overworld, dialogue, encounter, battle, snippetBattle, complete
 let playerName = null;
 let player = { x: 9, y: 10, px: 9*TILE, py: 10*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
 let keys = {};
@@ -146,6 +146,8 @@ let transitionType = null;
 let transitionCallback = null;
 let completeTimer = 0;
 let particles = [];
+let snippetBotDefeated = false;
+let snippetBattleState = null;
 
 // Intro sequence state
 let introTimer = 0;
@@ -1519,6 +1521,10 @@ function movePlayer() {
 
         if (player.px === targetX && player.py === targetY) {
             player.moving = false;
+            // Easter egg: SNIPPETBOT trigger at bottom-left corner
+            if (!snippetBotDefeated && player.x === 1 && player.y === 11) {
+                triggerSnippetBot();
+            }
         }
 
         player.animTimer++;
@@ -1624,6 +1630,9 @@ function handleAction() {
             break;
         case 'battle':
             handleBattleAction();
+            break;
+        case 'snippetBattle':
+            handleSnippetBattleAction();
             break;
         case 'complete':
             if (completeTimer > 60) {
@@ -1738,6 +1747,221 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ============================================================
+// SNIPPETBOT EASTER EGG BATTLE
+// ============================================================
+function triggerSnippetBot() {
+    snippetBotDefeated = true;
+    // Screen flash transition then enter snippetBattle state
+    transitionTimer = 30;
+    transitionCallback = () => {
+        state = 'snippetBattle';
+        snippetBattleState = {
+            phase: 'appear', // appear, move1, move2, move3, move4, xp, done
+            timer: 0,
+            textIdx: 0,
+        };
+    };
+}
+
+function drawSnippetBotSprite(x, y, scale) {
+    const s = scale || 2;
+    // Antenna
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x + 14*s, y, 2*s, 6*s);
+    // Antenna ball
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(x + 12*s, y - 3*s, 6*s, 4*s);
+    // Blink on antenna
+    ctx.fillStyle = '#ff8888';
+    ctx.fillRect(x + 13*s, y - 2*s, 2*s, 2*s);
+
+    // Head (square)
+    ctx.fillStyle = '#445566';
+    ctx.fillRect(x + 4*s, y + 6*s, 22*s, 18*s);
+    // Head inner panel
+    ctx.fillStyle = '#334455';
+    ctx.fillRect(x + 6*s, y + 8*s, 18*s, 14*s);
+    // Eyes (glowing)
+    const glowAlpha = 0.5 + Math.sin(Date.now() / 200) * 0.3;
+    ctx.fillStyle = `rgba(0, 255, 128, ${glowAlpha})`;
+    ctx.fillRect(x + 9*s, y + 12*s, 4*s, 4*s);
+    ctx.fillRect(x + 17*s, y + 12*s, 4*s, 4*s);
+    // Eye cores
+    ctx.fillStyle = '#00ff80';
+    ctx.fillRect(x + 10*s, y + 13*s, 2*s, 2*s);
+    ctx.fillRect(x + 18*s, y + 13*s, 2*s, 2*s);
+    // Zigzag mouth
+    ctx.fillStyle = '#ff6600';
+    for (let i = 0; i < 5; i++) {
+        const my = (i % 2 === 0) ? y + 19*s : y + 21*s;
+        ctx.fillRect(x + (8 + i*3)*s, my, 3*s, 2*s);
+    }
+
+    // Neck
+    ctx.fillStyle = '#666';
+    ctx.fillRect(x + 12*s, y + 24*s, 6*s, 3*s);
+
+    // Body (rectangular)
+    ctx.fillStyle = '#556677';
+    ctx.fillRect(x + 6*s, y + 27*s, 18*s, 20*s);
+    // Body panel
+    ctx.fillStyle = '#445566';
+    ctx.fillRect(x + 8*s, y + 29*s, 14*s, 16*s);
+    // Binary text on body
+    ctx.fillStyle = '#00cc66';
+    ctx.font = `${3*s}px monospace`;
+    ctx.fillText('01101', x + 9*s, y + 33*s);
+    ctx.fillText('SNIP', x + 9*s, y + 37*s);
+    ctx.fillText('10010', x + 9*s, y + 41*s);
+
+    // Arms
+    ctx.fillStyle = '#666';
+    ctx.fillRect(x + 1*s, y + 29*s, 5*s, 3*s);
+    ctx.fillRect(x + 24*s, y + 29*s, 5*s, 3*s);
+    // Claws
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x, y + 32*s, 3*s, 6*s);
+    ctx.fillRect(x + 27*s, y + 32*s, 3*s, 6*s);
+}
+
+function updateSnippetBattle() {
+    if (!snippetBattleState) return;
+    snippetBattleState.timer++;
+
+    const t = snippetBattleState.timer;
+    if (snippetBattleState.phase === 'appear' && t > 90) {
+        snippetBattleState.phase = 'move1';
+        snippetBattleState.timer = 0;
+    } else if (snippetBattleState.phase === 'move1' && t > 80) {
+        snippetBattleState.phase = 'move2';
+        snippetBattleState.timer = 0;
+    } else if (snippetBattleState.phase === 'move2' && t > 80) {
+        snippetBattleState.phase = 'move3';
+        snippetBattleState.timer = 0;
+    } else if (snippetBattleState.phase === 'move3' && t > 80) {
+        snippetBattleState.phase = 'move4';
+        snippetBattleState.timer = 0;
+    } else if (snippetBattleState.phase === 'move4' && t > 80) {
+        snippetBattleState.phase = 'xp';
+        snippetBattleState.timer = 0;
+    } else if (snippetBattleState.phase === 'xp' && t > 100) {
+        snippetBattleState.phase = 'done';
+        snippetBattleState.timer = 0;
+    }
+}
+
+function drawSnippetBattle() {
+    updateSnippetBattle();
+    if (!snippetBattleState) return;
+
+    // Background
+    ctx.fillStyle = PAL.paleGreen;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+    gradient.addColorStop(0, '#88c070');
+    gradient.addColorStop(1, '#a8d890');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_W, 160);
+    ctx.fillStyle = '#78b858';
+    ctx.fillRect(0, 140, CANVAS_W, 20);
+
+    // Enemy platform + sprite
+    const enemyX = CANVAS_W - 140;
+    const enemyY = 20;
+    ctx.fillStyle = '#60a040';
+    ctx.fillRect(enemyX - 20, enemyY + 100, 100, 12);
+    drawSnippetBotSprite(enemyX, enemyY, 2);
+
+    // Player side
+    const playerSprX = 50;
+    const playerSprY = 80;
+    ctx.fillStyle = '#60a040';
+    ctx.fillRect(playerSprX - 15, playerSprY + 56, 80, 12);
+    drawCharSprite(playerSprX, playerSprY - 6, playerName || 'Ben', 1, 0, 3);
+
+    // Enemy info box
+    drawBox(8, 8, 180, 44);
+    drawText('SNIPPETBOT', 18, 18, PAL.black, 1);
+    ctx.fillStyle = PAL.darkGray;
+    ctx.fillRect(18, 36, 150, 6);
+    // HP bar decreases in later phases
+    let hpPct = 1;
+    if (snippetBattleState.phase === 'move3') hpPct = 0.4;
+    else if (snippetBattleState.phase === 'move4' || snippetBattleState.phase === 'xp' || snippetBattleState.phase === 'done') hpPct = 0;
+    ctx.fillStyle = hpPct > 0.3 ? PAL.green : PAL.red;
+    ctx.fillRect(18, 36, 150 * hpPct, 6);
+
+    // Player info box
+    drawBox(CANVAS_W - 180, 115, 170, 44);
+    drawText(playerName || 'PLAYER', CANVAS_W - 170, 124, PAL.black, 1);
+    ctx.fillStyle = PAL.darkGray;
+    ctx.fillRect(CANVAS_W - 170, 142, 140, 6);
+    ctx.fillStyle = PAL.green;
+    ctx.fillRect(CANVAS_W - 170, 142, 140, 6);
+
+    // Dialogue box
+    drawBox(8, CANVAS_H - 80, CANVAS_W - 16, 72);
+
+    const phase = snippetBattleState.phase;
+    const t = snippetBattleState.timer;
+    let line1 = '', line2 = '';
+
+    if (phase === 'appear') {
+        const fullText = 'A wild SNIPPETBOT appeared!';
+        const chars = Math.min(fullText.length, Math.floor(t / 2));
+        line1 = fullText.substring(0, chars);
+    } else if (phase === 'move1') {
+        line1 = 'SNIPPETBOT used DEADLINE REMINDER!';
+        if (t > 40) line2 = "It's super effective...";
+    } else if (phase === 'move2') {
+        line1 = (playerName || 'PLAYER') + ' used SUBMIT ON TIME!';
+    } else if (phase === 'move3') {
+        line1 = 'SNIPPETBOT was defeated!';
+    } else if (phase === 'move4') {
+        line1 = 'SNIPPETBOT fainted!';
+    } else if (phase === 'xp') {
+        line1 = 'You earned 500 XP!';
+        line2 = 'The snippet menace is vanquished.';
+    } else if (phase === 'done') {
+        line1 = 'Press SPACE to continue...';
+    }
+
+    drawText(line1, 24, CANVAS_H - 58, PAL.black, 1.1);
+    if (line2) drawText(line2, 24, CANVAS_H - 36, PAL.black, 1);
+
+    // Blinking indicator when waiting
+    if ((phase === 'done') && Math.floor(Date.now() / 400) % 2 === 0) {
+        ctx.fillStyle = PAL.black;
+        ctx.fillRect(CANVAS_W - 32, CANVAS_H - 20, 8, 6);
+        ctx.fillRect(CANVAS_W - 30, CANVAS_H - 14, 4, 3);
+    }
+
+    // Screen shake effect on "super effective"
+    if (phase === 'move1' && t > 40 && t < 55) {
+        const shake = Math.sin(t * 2) * 3;
+        ctx.save();
+        ctx.translate(shake, 0);
+        ctx.restore();
+    }
+}
+
+function handleSnippetBattleAction() {
+    if (!snippetBattleState) return;
+    // Pressing space advances through phases faster
+    if (snippetBattleState.phase === 'done') {
+        // Return to overworld
+        snippetBattleState = null;
+        transitionTimer = 30;
+        transitionCallback = () => {
+            state = 'overworld';
+        };
+    } else {
+        // Skip to next phase
+        snippetBattleState.timer = 999;
+    }
+}
+
+// ============================================================
 // SAVE DATA
 // ============================================================
 function finishGame() {
@@ -1795,6 +2019,9 @@ function gameLoop() {
             break;
         case 'battle':
             drawBattle();
+            break;
+        case 'snippetBattle':
+            drawSnippetBattle();
             break;
         case 'complete':
             drawComplete();
