@@ -18,8 +18,8 @@
         }
         #gameContainer {
             position: relative;
-            width: 960px;
-            height: 640px;
+            width: 720px;
+            height: 540px;
             border: 6px solid #222;
             border-radius: 8px;
             background: #000;
@@ -65,7 +65,7 @@
 <body>
     <a href="index.html" class="mode-toggle">[ classic mode ]</a>
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="480" height="320"></canvas>
+        <canvas id="gameCanvas" width="720" height="360"></canvas>
     </div>
     <p class="controls-hint">ARROWS/WASD: move | SPACE/ENTER: interact | explore the island!</p>
     <input type="text" id="hiddenInput" maxlength="140" autocomplete="off" />
@@ -76,11 +76,11 @@
 // Single-file HTML game — GBC era aesthetics
 // ============================================================
 
-const CANVAS_W = 480;
-const CANVAS_H = 320;
+const CANVAS_W = 720;
+const CANVAS_H = 360;
 const TILE = 24;
-const COLS = CANVAS_W / TILE; // 20
-const ROWS = Math.floor(CANVAS_H / TILE); // 13 (320/24 = 13.33, use 13 rows)
+const COLS = CANVAS_W / TILE; // 30
+const ROWS = CANVAS_H / TILE; // 15
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -125,7 +125,7 @@ const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','�
 // ============================================================
 let state = 'title'; // title, nameSelect, intro, overworld, dialogue, encounter, battle, snippetBattle, complete
 let playerName = null;
-let player = { x: 9, y: 10, px: 9*TILE, py: 10*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
+let player = { x: 15, y: 12, px: 15*TILE, py: 12*TILE, dir: 0, moving: false, step: 0, animTimer: 0 };
 let keys = {};
 let keysJustPressed = {};
 let dialogueLines = [];
@@ -161,40 +161,56 @@ const DIR_DX = [0, 0, -1, 1];
 const DIR_DY = [1, -1, 0, 0];
 
 // ============================================================
-// MAP DATA (20x13 tiles)
-// 0=grass, 1=path, 2=tree, 3=water, 4=flower, 5=building, 6=sign, 7=fence
+// MAP DATA (30x15 tiles)
+// 0=grass, 1=path, 2=tree, 3=water, 4=flower, 5=stone, 6=sand, 7=bush
+// 8=bench, 9=lamppost, 10=rock, 11=dark_grass, 12=gravel, 13=garden
+// Path tiles spell "VIBES" when viewed from above!
 // ============================================================
+// Letter grid (rows 4-10, cols as shown):
+// V: cols 1-5, I: cols 7-11, B: cols 13-17, E: cols 19-23, S: cols 25-29
 const MAP = [
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
-    [2,0,0,4,0,0,0,1,1,1,1,1,0,0,0,4,0,0,0,2],
-    [2,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,2],
-    [2,4,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,4,2],
-    [2,0,0,0,2,0,0,1,0,0,0,1,0,0,2,0,0,0,0,2],
-    [2,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,2],
-    [2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
-    [2,0,0,0,0,0,0,1,3,3,3,1,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,1,3,3,3,1,0,0,0,0,0,0,0,2],
-    [2,0,4,0,0,0,0,1,1,1,1,1,0,0,0,0,4,0,0,2],
-    [2,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,2],
-    [2,0,0,4,0,0,0,1,0,0,0,1,0,0,0,4,0,0,0,2],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+//   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29
+//   V: cols 1-5    I: cols 7-11    B: cols 13-17    E: cols 19-23    S: cols 24-28
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], // 0: border
+    [2,11,11, 4,11,11, 9,11,11, 4,11,11, 9,11, 4,11,11,11, 9,11,11, 4,11,11, 9,11,11, 4,11, 2], // 1: deco row
+    [2,11, 6, 6, 6,11,11, 0, 0, 0, 0, 0,11, 0, 0, 0, 0,11, 0, 0, 0, 0, 0,11, 6, 6, 6,11,11, 2], // 2: sand+ponds
+    [2, 4, 6, 3, 6, 4,10, 0, 0, 0, 0, 0,10, 0, 0, 0, 0,10, 0, 0, 0, 0, 0,10, 6, 3, 6, 4,11, 2], // 3: ponds+rocks
+    [2, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 2], // 4: letter tops
+    [2, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2], // 5
+    [2, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2], // 6
+    [2, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 2], // 7: middle bars
+    [2, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2], // 8
+    [2, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2], // 9
+    [2, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 2], // 10: letter bottoms
+    [2,11, 0, 1, 0,11, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0,11, 2], // 11: connectors
+    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2], // 12: main walkway
+    [2,11, 4,10,11,11, 8,11,11,13,13,11,11, 7,11, 4,11,11, 8,11,11,13,13,11, 7,11, 4,10,11, 2], // 13: deco row
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], // 14: border
 ];
 
-// NPC locations and data
+// Disco ball locations (decorative animated landmarks)
+const DISCO_BALLS = [
+    { x: 6, y: 1 },
+    { x: 12, y: 1 },
+    { x: 18, y: 1 },
+    { x: 24, y: 1 },
+];
+
+// NPC locations and data — one per letter in VIBES
 const NPCS = [
-    { id: 'vibe', x: 4, y: 3, color: PAL.red, name: 'EMOJI SHRINE', badge: 'Vibe',
+    { id: 'vibe', x: 2, y: 8, color: PAL.red, name: 'EMOJI SHRINE', badge: 'Vibe',
       dialogue: ['This is the EMOJI SHRINE!', 'Choose an emoji that represents your vibe today.'],
       encounter: { type: 'emoji', title: 'EMOJI SHRINE' } },
-    { id: 'feeling', x: 15, y: 3, color: PAL.blue, name: 'FEELINGS FOUNTAIN', badge: 'Feeling',
+    { id: 'feeling', x: 9, y: 5, color: PAL.blue, name: 'FEELINGS FOUNTAIN', badge: 'Feeling',
       dialogue: ['Welcome to the FEELINGS FOUNTAIN.', 'Tell me... how are you feeling today?'],
       encounter: { type: 'text', title: 'FEELINGS FOUNTAIN', field: 'feeling', prompt: 'How are you feeling today?' } },
-    { id: 'forward', x: 3, y: 8, color: PAL.purple, name: 'FORWARD BRIDGE', badge: 'Forward',
+    { id: 'forward', x: 15, y: 7, color: PAL.purple, name: 'FORWARD BRIDGE', badge: 'Forward',
       dialogue: ['You stand at the FORWARD BRIDGE...', 'What is one thing you are looking forward to?'],
       encounter: { type: 'text', title: 'FORWARD BRIDGE', field: 'lookingForward', prompt: 'One thing you\'re looking forward to?' } },
-    { id: 'proud', x: 16, y: 8, color: PAL.yellow, name: 'PRIDE PEAK', badge: 'Proud',
+    { id: 'proud', x: 20, y: 7, color: PAL.yellow, name: 'PRIDE PEAK', badge: 'Proud',
       dialogue: ['You have reached PRIDE PEAK!', 'Tell me something you were proud of this week.'],
       encounter: { type: 'text', title: 'PRIDE PEAK', field: 'proudOf', prompt: 'Something you were proud of this week?' } },
-    { id: 'discuss', x: 9, y: 11, color: PAL.green, name: 'DISCUSSION DEN', badge: 'Discuss',
+    { id: 'discuss', x: 26, y: 7, color: PAL.green, name: 'DISCUSSION DEN', badge: 'Discuss',
       dialogue: ['The DISCUSSION DEN awaits...', 'Is there anything we need to talk about today?'],
       encounter: { type: 'text', title: 'DISCUSSION DEN', field: 'talkAbout', prompt: 'Anything we need to talk about today?' } },
 ];
@@ -606,7 +622,205 @@ function drawTile(tx, ty, type) {
             ctx.fillStyle = PAL.yellow;
             ctx.fillRect(x+7*s, y+7*s, s*2, s*1);
             break;
+
+        case 5: // Stone tile — gray cobblestone
+            ctx.fillStyle = '#9898a0';
+            ctx.fillRect(x, y, T, T);
+            ctx.fillStyle = '#787880';
+            ctx.fillRect(x, y, T, s);
+            ctx.fillRect(x, y, s, T);
+            ctx.fillStyle = '#b0b0b8';
+            ctx.fillRect(x+3*s, y+3*s, 5*s, 4*s);
+            ctx.fillRect(x+9*s, y+2*s, 4*s, 5*s);
+            ctx.fillRect(x+2*s, y+9*s, 6*s, 4*s);
+            ctx.fillRect(x+10*s, y+9*s, 4*s, 5*s);
+            break;
+
+        case 6: // Sand — warm sandy ground
+            ctx.fillStyle = '#e8d8a8';
+            ctx.fillRect(x, y, T, T);
+            // Sand grain texture
+            ctx.fillStyle = '#d0c090';
+            const sandSeed = (tx * 11 + ty * 7) % 13;
+            if (sandSeed < 4) {
+                ctx.fillRect(x + (sandSeed*3)*s, y + (sandSeed*2+2)*s, s*2, s);
+            }
+            ctx.fillStyle = '#f0e8c0';
+            if (sandSeed > 8) {
+                ctx.fillRect(x + (sandSeed-5)*s, y + (sandSeed-3)*s, s, s);
+            }
+            break;
+
+        case 7: // Bush — dark green rounded bush on grass
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, T, T);
+            // Bush body
+            ctx.fillStyle = '#1a5c2a';
+            ctx.fillRect(x+2*s, y+6*s, 12*s, 9*s);
+            ctx.fillRect(x+3*s, y+4*s, 10*s, 3*s);
+            ctx.fillStyle = PAL.darkGreen;
+            ctx.fillRect(x+3*s, y+6*s, 10*s, 7*s);
+            // Highlight
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x+4*s, y+6*s, 4*s, 3*s);
+            ctx.fillStyle = PAL.lightGreen;
+            ctx.fillRect(x+5*s, y+7*s, 2*s, 2*s);
+            break;
+
+        case 8: // Bench — wooden bench on grass
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, T, T);
+            // Bench legs
+            ctx.fillStyle = PAL.darkBrown;
+            ctx.fillRect(x+3*s, y+10*s, s*2, s*5);
+            ctx.fillRect(x+11*s, y+10*s, s*2, s*5);
+            // Seat
+            ctx.fillStyle = PAL.brown;
+            ctx.fillRect(x+2*s, y+8*s, 12*s, 3*s);
+            // Back rest
+            ctx.fillStyle = PAL.brown;
+            ctx.fillRect(x+2*s, y+4*s, 12*s, 2*s);
+            ctx.fillStyle = PAL.darkBrown;
+            ctx.fillRect(x+2*s, y+6*s, s, 2*s);
+            ctx.fillRect(x+13*s, y+6*s, s, 2*s);
+            break;
+
+        case 9: // Lamppost — tall post with glowing top on grass
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, T, T);
+            // Post
+            ctx.fillStyle = '#404040';
+            ctx.fillRect(x+7*s, y+5*s, 2*s, 10*s);
+            // Base
+            ctx.fillStyle = '#505050';
+            ctx.fillRect(x+5*s, y+14*s, 6*s, 2*s);
+            // Lamp head
+            ctx.fillStyle = '#606060';
+            ctx.fillRect(x+5*s, y+3*s, 6*s, 3*s);
+            // Glow
+            const lampGlow = 0.3 + Math.sin(Date.now() / 800 + tx) * 0.15;
+            ctx.fillStyle = `rgba(255,240,150,${lampGlow})`;
+            ctx.fillRect(x+4*s, y+1*s, 8*s, 5*s);
+            ctx.fillStyle = PAL.yellow;
+            ctx.fillRect(x+6*s, y+4*s, 4*s, s);
+            break;
+
+        case 10: // Rock — gray rock on grass
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, T, T);
+            // Rock shape
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(x+4*s, y+8*s, 9*s, 6*s);
+            ctx.fillRect(x+5*s, y+6*s, 7*s, 3*s);
+            // Highlight
+            ctx.fillStyle = '#a0a0a0';
+            ctx.fillRect(x+5*s, y+7*s, 4*s, 3*s);
+            // Shadow
+            ctx.fillStyle = '#606060';
+            ctx.fillRect(x+9*s, y+10*s, 3*s, 3*s);
+            break;
+
+        case 11: // Dark grass — slightly different shade
+            ctx.fillStyle = '#267842';
+            ctx.fillRect(x, y, T, T);
+            const dSeed = (tx * 11 + ty * 3) % 9;
+            if (dSeed === 0) {
+                ctx.fillStyle = '#1e6438';
+                ctx.fillRect(x+5*s, y+8*s, s*2, s*2);
+            } else if (dSeed === 4) {
+                ctx.fillStyle = '#308850';
+                ctx.fillRect(x+10*s, y+4*s, s*2, s);
+            }
+            break;
+
+        case 12: // Gravel — gray pebbly ground
+            ctx.fillStyle = '#a8a098';
+            ctx.fillRect(x, y, T, T);
+            ctx.fillStyle = '#908880';
+            const gSeed = (tx * 5 + ty * 9) % 7;
+            ctx.fillRect(x+(gSeed*2)*s, y+4*s, s*3, s*2);
+            ctx.fillRect(x+8*s, y+(gSeed+5)*s, s*2, s*2);
+            ctx.fillStyle = '#b8b0a8';
+            ctx.fillRect(x+3*s, y+10*s, s*2, s*2);
+            break;
+
+        case 13: // Garden — grass with multiple small flowers
+            ctx.fillStyle = PAL.green;
+            ctx.fillRect(x, y, T, T);
+            // Multiple tiny flowers
+            const colors = ['#e850a0', PAL.red, PAL.yellow, '#a040e0'];
+            for (let fi = 0; fi < 4; fi++) {
+                const fx = (3 + fi * 3 + (ty % 2)) * s;
+                const fy = (4 + (fi % 2) * 5 + (tx % 2) * 2) * s;
+                ctx.fillStyle = colors[(fi + tx + ty) % 4];
+                ctx.fillRect(x + fx, y + fy, s*2, s*2);
+                ctx.fillStyle = PAL.yellow;
+                ctx.fillRect(x + fx + s*0.5, y + fy + s*0.5, s, s);
+            }
+            // Little stems
+            ctx.fillStyle = PAL.darkGreen;
+            ctx.fillRect(x+4*s, y+8*s, s, s*3);
+            ctx.fillRect(x+10*s, y+10*s, s, s*2);
+            break;
     }
+}
+
+// ============================================================
+// DISCO BALL RENDERING (animated sparkly decoration)
+// ============================================================
+let discoFrame = 0;
+let discoTick = 0;
+
+function drawDiscoBall(dbx, dby) {
+    const cx = dbx * TILE + TILE / 2;
+    const cy = dby * TILE + TILE / 2;
+    const radius = 8;
+    const s = TILE / 16;
+
+    // String/chain from above
+    ctx.fillStyle = '#606060';
+    ctx.fillRect(cx - s*0.5, dby * TILE - 2*s, s, 5*s);
+
+    // Ball body (circle approximation with filled rect grid)
+    ctx.fillStyle = '#c0c0c8';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 2*s, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mirror tile grid pattern on the ball
+    const t = Date.now() / 400;
+    for (let i = 0; i < 6; i++) {
+        const angle = t + i * (Math.PI / 3);
+        const mx = cx + Math.cos(angle) * 4;
+        const my = cy + 2*s + Math.sin(angle) * 4;
+        ctx.fillStyle = i % 2 === 0 ? '#e8e8f0' : '#a0a0b0';
+        ctx.fillRect(mx - s, my - s, s*2, s*2);
+    }
+
+    // Dark outline
+    ctx.strokeStyle = '#808088';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy + 2*s, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Sparkle rays rotating outward
+    const sparkleCount = 5;
+    for (let i = 0; i < sparkleCount; i++) {
+        const angle = (t * 1.5) + i * (Math.PI * 2 / sparkleCount);
+        const dist = 10 + Math.sin(t * 2 + i) * 3;
+        const sx = cx + Math.cos(angle) * dist;
+        const sy = cy + 2*s + Math.sin(angle) * dist;
+        const alpha = 0.5 + Math.sin(t * 3 + i * 2) * 0.4;
+        // Star sparkle shape
+        ctx.fillStyle = `rgba(255,255,200,${Math.max(0, alpha)})`;
+        ctx.fillRect(sx - s, sy - s*0.5, s*2, s);
+        ctx.fillRect(sx - s*0.5, sy - s, s, s*2);
+    }
+
+    // Highlight on ball
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillRect(cx - 3, cy - 1, 3, 2);
 }
 
 function drawNPC(npc) {
@@ -1104,6 +1318,11 @@ function drawOverworld() {
         }
     }
 
+    // Draw disco balls
+    for (const db of DISCO_BALLS) {
+        drawDiscoBall(db.x, db.y);
+    }
+
     // Draw NPCs
     for (const npc of NPCS) {
         drawNPC(npc);
@@ -1486,7 +1705,8 @@ function drawBox(x, y, w, h) {
 function isWalkable(tx, ty) {
     if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return false;
     const tile = MAP[ty][tx];
-    if (tile === 2 || tile === 3) return false; // tree, water
+    // Impassable: tree, water, bush, bench, lamppost, rock
+    if (tile === 2 || tile === 3 || tile === 7 || tile === 8 || tile === 9 || tile === 10) return false;
     // Check NPC collision
     for (const npc of NPCS) {
         if (npc.x === tx && npc.y === ty) return false;
