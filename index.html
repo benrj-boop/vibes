@@ -997,9 +997,10 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sidebar-card">
+        <div class="sidebar-card" style="position:relative;">
             <h3>today's standup</h3>
             <p class="sidebar-subtitle">click a name to present</p>
+            <span id="syncIndicator" style="position:absolute;top:1.25rem;right:1.25rem;font-size:0.65rem;color:#9ca3af;"></span>
             <div id="standupQueue"></div>
         </div>
 
@@ -1085,9 +1086,80 @@
         let selectedName = localStorage.getItem('vibecheck-name') || null;
         let feed = JSON.parse(localStorage.getItem('vibecheck-feed') || '[]');
 
+        // Shared state from Google Sheet (source of truth for sidebar + feed)
+        let sharedEntries = [];
+        let lastSyncTime = null;
+        let pollTimer = null;
+
         // Keep all entries (for weekly export), but display today only
         const today = new Date().toDateString();
-        let todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+        const todayDateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD for API
+        let todayFeed = [];
+
+        // Derive todayFeed from shared entries (primary) with localStorage fallback
+        function updateTodayFeed() {
+            if (sharedEntries.length > 0) {
+                // Use shared data as source of truth
+                todayFeed = sharedEntries.map(row => ({
+                    name: row.name,
+                    vibe: row.emoji,
+                    type: row.vibeType || 'emoji',
+                    feeling: row.feeling || null,
+                    lookingForward: row.lookingForward || null,
+                    proudOf: row.proudOf || null,
+                    talkAbout: row.talkAbout || null,
+                    time: row.timestamp || new Date().toISOString()
+                }));
+            } else {
+                // Fallback to localStorage for offline/initial load
+                todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+            }
+        }
+
+        // Sync indicator
+        function setSyncStatus(status) {
+            const el = document.getElementById('syncIndicator');
+            if (!el) return;
+            if (status === 'syncing') {
+                el.textContent = 'syncing...';
+                el.style.color = '#f59e0b';
+            } else if (status === 'live') {
+                el.textContent = 'live';
+                el.style.color = '#22c55e';
+            } else if (status === 'offline') {
+                el.textContent = 'offline';
+                el.style.color = '#ef4444';
+            }
+        }
+
+        // Fetch shared entries from Google Sheet
+        async function fetchSharedEntries() {
+            if (!SCRIPT_URL) return;
+            try {
+                setSyncStatus('syncing');
+                const url = `${SCRIPT_URL}?date=${todayDateStr}`;
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error('fetch failed');
+                const data = await resp.json();
+                sharedEntries = Array.isArray(data) ? data : [];
+                lastSyncTime = Date.now();
+                updateTodayFeed();
+                renderFeed();
+                setSyncStatus('live');
+            } catch (err) {
+                console.warn('Sheet fetch failed, using localStorage fallback:', err);
+                setSyncStatus('offline');
+                // Keep using localStorage data
+                updateTodayFeed();
+                renderFeed();
+            }
+        }
+
+        // Start polling every 5 seconds
+        function startPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(fetchSharedEntries, 5000);
+        }
 
         // Init name picker
         const namePicker = document.getElementById('namePicker');
@@ -1187,7 +1259,7 @@
         }
 
         // Submit
-        document.getElementById('submitBtn').onclick = () => {
+        document.getElementById('submitBtn').onclick = async () => {
             if (!selectedName || !state.selection) return;
             const name = selectedName;
 
@@ -1207,27 +1279,51 @@
                 time: new Date().toISOString()
             };
 
+            // Save to localStorage as personal cache
+            // Remove any existing entry from same person today (upsert)
+            feed = feed.filter(item => !(item.name === name && new Date(item.time).toDateString() === today));
             feed.unshift(entry);
-            todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
             localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
+
+            // Optimistic update for immediate feedback
+            updateTodayFeed();
+            // Merge the new entry optimistically if not already in sharedEntries
+            const existingIdx = todayFeed.findIndex(e => e.name === name);
+            if (existingIdx === -1) {
+                todayFeed.unshift(entry);
+            } else {
+                todayFeed[existingIdx] = entry;
+            }
             renderFeed();
 
-            // Sync to Google Sheet
+            // POST full entry to Google Sheet
             if (SCRIPT_URL) {
                 const now = new Date();
                 const weekNum = Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7);
-                fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'save',
-                        week: `${now.getFullYear()}-W${String(weekNum).padStart(2,'0')}`,
-                        date: now.toISOString().split('T')[0],
-                        name: name,
-                        emoji: state.selection,
-                        song: feeling || '',
-                    }),
-                }).catch(() => {});
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'save',
+                            week: `${now.getFullYear()}-W${String(weekNum).padStart(2,'0')}`,
+                            date: todayDateStr,
+                            name: name,
+                            emoji: state.selection,
+                            vibeType: state.type,
+                            feeling: feeling || '',
+                            lookingForward: lookingForward || '',
+                            proudOf: proudOf || '',
+                            talkAbout: talkAbout || '',
+                        }),
+                    });
+                    // Fetch fresh data after successful save
+                    setTimeout(fetchSharedEntries, 1000);
+                } catch (err) {
+                    console.warn('POST to sheet failed:', err);
+                    setSyncStatus('offline');
+                }
             }
+
             clearSelection();
             document.getElementById('feelingInput').value = '';
             document.getElementById('lookingForwardInput').value = '';
@@ -1252,13 +1348,11 @@
             }
 
             feedList.innerHTML = todayFeed.map((item, idx) => {
-                const time = new Date(item.time);
+                const time = item.time ? new Date(item.time) : new Date();
                 const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const vibeDisplay = item.type === 'emoji'
                     ? `<span>${item.vibe}</span>`
                     : `<span style="font-size:0.9rem;font-style:italic">${item.vibe}</span>`;
-
-                const feedIdx = feed.indexOf(item);
 
                 let detailsHtml = '';
                 if (item.feeling || item.lookingForward || item.proudOf || item.talkAbout) {
@@ -1278,15 +1372,21 @@
                     detailsHtml += '</div>';
                 }
 
+                // Only show edit/delete for own entries
+                const isOwn = item.name === selectedName;
+                const actionsHtml = isOwn ? `
+                    <div class="feed-item-actions">
+                        <button class="feed-item-btn" onclick="editEntry('${escapeHtml(item.name)}')">edit</button>
+                        <button class="feed-item-btn delete" onclick="deleteEntry('${escapeHtml(item.name)}')">x</button>
+                    </div>
+                ` : '';
+
                 return `
                     <div class="feed-item">
                         <div class="feed-header">
                             <div class="feed-emoji">${vibeDisplay}</div>
                             <div class="feed-name">${escapeHtml(item.name)}</div>
-                            <div class="feed-item-actions">
-                                <button class="feed-item-btn" onclick="editEntry(${feedIdx})">edit</button>
-                                <button class="feed-item-btn delete" onclick="deleteEntry(${feedIdx})">x</button>
-                            </div>
+                            ${actionsHtml}
                             <div class="feed-time">${timeStr}</div>
                         </div>
                         ${detailsHtml}
@@ -1296,17 +1396,19 @@
         }
 
         function escapeHtml(str) {
+            if (!str) return '';
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
 
-        // Edit entry
-        let editingIdx = null;
+        // Edit entry (only own entries)
+        let editingName = null;
 
-        function editEntry(idx) {
-            editingIdx = idx;
-            const item = feed[idx];
+        function editEntry(name) {
+            const item = todayFeed.find(e => e.name === name);
+            if (!item) return;
+            editingName = name;
             document.getElementById('editFeeling').value = item.feeling || '';
             document.getElementById('editLookingForward').value = item.lookingForward || '';
             document.getElementById('editProudOf').value = item.proudOf || '';
@@ -1314,61 +1416,137 @@
             document.getElementById('editModal').classList.add('visible');
         }
 
-        document.getElementById('editSaveBtn').onclick = () => {
-            if (editingIdx === null) return;
-            feed[editingIdx].feeling = document.getElementById('editFeeling').value.trim() || null;
-            feed[editingIdx].lookingForward = document.getElementById('editLookingForward').value.trim() || null;
-            feed[editingIdx].proudOf = document.getElementById('editProudOf').value.trim() || null;
-            feed[editingIdx].talkAbout = document.getElementById('editTalkAbout').value.trim() || null;
-            localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
-            todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+        document.getElementById('editSaveBtn').onclick = async () => {
+            if (editingName === null) return;
+            const feeling = document.getElementById('editFeeling').value.trim() || '';
+            const lookingForward = document.getElementById('editLookingForward').value.trim() || '';
+            const proudOf = document.getElementById('editProudOf').value.trim() || '';
+            const talkAbout = document.getElementById('editTalkAbout').value.trim() || '';
+
+            // Update localStorage
+            const localIdx = feed.findIndex(item => item.name === editingName && new Date(item.time).toDateString() === today);
+            if (localIdx !== -1) {
+                feed[localIdx].feeling = feeling || null;
+                feed[localIdx].lookingForward = lookingForward || null;
+                feed[localIdx].proudOf = proudOf || null;
+                feed[localIdx].talkAbout = talkAbout || null;
+                localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
+            }
+
+            // Re-POST to sheet (full upsert)
+            if (SCRIPT_URL) {
+                const item = todayFeed.find(e => e.name === editingName);
+                const now = new Date();
+                const weekNum = Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7);
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'save',
+                            week: `${now.getFullYear()}-W${String(weekNum).padStart(2,'0')}`,
+                            date: todayDateStr,
+                            name: editingName,
+                            emoji: item ? item.vibe : '',
+                            vibeType: item ? item.type : 'emoji',
+                            feeling: feeling,
+                            lookingForward: lookingForward,
+                            proudOf: proudOf,
+                            talkAbout: talkAbout,
+                        }),
+                    });
+                    setTimeout(fetchSharedEntries, 1000);
+                } catch (err) {
+                    console.warn('Edit POST failed:', err);
+                }
+            }
+
+            // Optimistic local update
+            const tdIdx = todayFeed.findIndex(e => e.name === editingName);
+            if (tdIdx !== -1) {
+                todayFeed[tdIdx].feeling = feeling || null;
+                todayFeed[tdIdx].lookingForward = lookingForward || null;
+                todayFeed[tdIdx].proudOf = proudOf || null;
+                todayFeed[tdIdx].talkAbout = talkAbout || null;
+            }
             renderFeed();
-            renderArchive();
             document.getElementById('editModal').classList.remove('visible');
-            editingIdx = null;
+            editingName = null;
         };
 
         document.getElementById('editCancelBtn').onclick = () => {
             document.getElementById('editModal').classList.remove('visible');
-            editingIdx = null;
+            editingName = null;
         };
 
         document.getElementById('editModal').onclick = (e) => {
             if (e.target === document.getElementById('editModal')) {
                 document.getElementById('editModal').classList.remove('visible');
-                editingIdx = null;
+                editingName = null;
             }
         };
 
-        // Delete entry
-        function deleteEntry(idx) {
+        // Delete entry (own only)
+        async function deleteEntry(name) {
             if (!confirm('remove this check-in?')) return;
-            feed.splice(idx, 1);
+
+            // Remove from localStorage
+            feed = feed.filter(item => !(item.name === name && new Date(item.time).toDateString() === today));
             localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
-            todayFeed = feed.filter(item => new Date(item.time).toDateString() === today);
+
+            // Remove from sheet
+            if (SCRIPT_URL) {
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'clear',
+                            date: todayDateStr,
+                            name: name,
+                        }),
+                    });
+                    setTimeout(fetchSharedEntries, 1000);
+                } catch (err) {
+                    console.warn('Delete POST failed:', err);
+                }
+            }
+
+            // Optimistic update
+            todayFeed = todayFeed.filter(item => item.name !== name);
             renderFeed();
-            renderArchive();
         }
 
-        // Reset all
+        // Reset all (local only — clears localStorage, does not nuke the sheet)
         document.getElementById('resetBtn').onclick = () => {
-            if (!confirm("clear all check-ins? this can't be undone.")) return;
+            if (!confirm("clear your local data? shared check-ins stay in the sheet.")) return;
             feed = [];
-            todayFeed = [];
             standupDone = [];
             activeStandup = null;
             localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
             localStorage.removeItem('vibecheck-standup-done');
-            renderFeed();
+            // Re-fetch from sheet to keep displaying shared data
+            fetchSharedEntries();
         };
 
         // Export week
         document.getElementById('exportBtn').onclick = () => {
             const now = new Date();
             const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            const weekEntries = feed.filter(item => new Date(item.time) >= weekAgo);
 
-            if (weekEntries.length === 0) {
+            // Use shared entries if available, otherwise localStorage
+            const exportSource = sharedEntries.length > 0
+                ? sharedEntries.map(row => ({
+                    name: row.name,
+                    vibe: row.emoji,
+                    type: row.vibeType || 'emoji',
+                    feeling: row.feeling || null,
+                    lookingForward: row.lookingForward || null,
+                    proudOf: row.proudOf || null,
+                    talkAbout: row.talkAbout || null,
+                    time: row.timestamp || new Date().toISOString()
+                }))
+                : feed.filter(item => new Date(item.time) >= weekAgo);
+
+            if (exportSource.length === 0) {
                 alert('no entries from this week to export');
                 return;
             }
@@ -1376,7 +1554,7 @@
             let markdown = `# Team Vibe Check — Week of ${weekAgo.toLocaleDateString()} to ${now.toLocaleDateString()}\n\n`;
 
             const byDate = {};
-            weekEntries.forEach(item => {
+            exportSource.forEach(item => {
                 const dateKey = new Date(item.time).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
                 if (!byDate[dateKey]) byDate[dateKey] = [];
                 byDate[dateKey].push(item);
@@ -1452,8 +1630,6 @@
                         ? `<span>${item.vibe}</span>`
                         : `<span style="font-size:0.9rem;font-style:italic">${item.vibe}</span>`;
 
-                    const feedIdx = feed.indexOf(item);
-
                     let detailsHtml = '';
                     if (item.feeling || item.lookingForward || item.proudOf || item.talkAbout) {
                         detailsHtml = '<div class="feed-details">';
@@ -1469,10 +1645,6 @@
                             <div class="feed-header">
                                 <div class="feed-emoji">${vibeDisplay}</div>
                                 <div class="feed-name">${escapeHtml(item.name)}</div>
-                                <div class="feed-item-actions">
-                                    <button class="feed-item-btn" onclick="editEntry(${feedIdx})">edit</button>
-                                    <button class="feed-item-btn delete" onclick="deleteEntry(${feedIdx})">x</button>
-                                </div>
                                 <div class="feed-time">${timeStr}</div>
                             </div>
                             ${detailsHtml}
@@ -1559,7 +1731,15 @@
                 return;
             }
 
-            discussEl.innerHTML = '<ul class="discuss-list">' + discussItems.map(item => `
+            // Dedupe by name (one discuss item per person)
+            const seen = new Set();
+            const uniqueItems = discussItems.filter(item => {
+                if (seen.has(item.name)) return false;
+                seen.add(item.name);
+                return true;
+            });
+
+            discussEl.innerHTML = '<ul class="discuss-list">' + uniqueItems.map(item => `
                 <li class="discuss-item">
                     <span class="discuss-item-author">${escapeHtml(item.name)}</span>
                     <span class="discuss-item-text">${escapeHtml(item.talkAbout)}</span>
@@ -1575,7 +1755,11 @@
             renderStandupQueue();
         };
 
+        // Initial render with localStorage, then fetch shared data
+        updateTodayFeed();
         renderFeed();
+        fetchSharedEntries();
+        startPolling();
 
         // Floating particles (subtle dots)
         const canvas = document.getElementById('particleCanvas');
