@@ -1078,9 +1078,18 @@
             const params = new URLSearchParams(window.location.search);
             const teamParam = params.get('team');
             if (teamParam) return teamParam.split(',').map(n => n.trim()).filter(Boolean);
-            return ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+            return ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya', 'Asuka'];
         })();
-        const SCRIPT_URL = 'https://script.google.com/a/macros/stripe.com/s/AKfycbxrTgdwlufPu8l-2IY0CVsiGQhmXcYTqSDxyKgQh6YnVyxdFAr4tdzU3YPKFGYPWBUD/exec';
+        // --- Supabase backend (shared state across all sessions) ---
+        const SUPABASE_URL = 'https://twspdhtforhqgqsejaqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3c3BkaHRmb3JocWdxc2VqYXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MDA0MzAsImV4cCI6MjEwMDE3NjQzMH0.g2JXr-ig0ChBbkyb620k6U-K0maCoi91Kt_65mu8cSQ';  // anon public key — safe to commit
+        const REST_URL = `${SUPABASE_URL}/rest/v1/checkins`;
+        const SB_HEADERS = {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+        };
+        const BACKEND_READY = SUPABASE_URL.startsWith('http');
 
         let state = { selection: null, type: null };
         let selectedName = localStorage.getItem('vibecheck-name') || null;
@@ -1132,22 +1141,34 @@
             }
         }
 
-        // Fetch shared entries from Google Sheet
+        // Fetch shared entries from Supabase
         async function fetchSharedEntries() {
-            if (!SCRIPT_URL) return;
+            if (!BACKEND_READY) return;
             try {
                 setSyncStatus('syncing');
-                const url = `${SCRIPT_URL}?date=${todayDateStr}`;
-                const resp = await fetch(url);
+                const url = `${REST_URL}?date=eq.${todayDateStr}&select=*&order=timestamp.asc`;
+                const resp = await fetch(url, { headers: SB_HEADERS });
                 if (!resp.ok) throw new Error('fetch failed');
                 const data = await resp.json();
-                sharedEntries = Array.isArray(data) ? data : [];
+                // Map DB (snake_case) back to the camelCase shape the UI expects
+                sharedEntries = (Array.isArray(data) ? data : []).map(r => ({
+                    week: r.week,
+                    date: r.date,
+                    name: r.name,
+                    emoji: r.emoji,
+                    vibeType: r.vibe_type,
+                    feeling: r.feeling,
+                    lookingForward: r.looking_forward,
+                    proudOf: r.proud_of,
+                    talkAbout: r.talk_about,
+                    timestamp: r.timestamp,
+                }));
                 lastSyncTime = Date.now();
                 updateTodayFeed();
                 renderFeed();
                 setSyncStatus('live');
             } catch (err) {
-                console.warn('Sheet fetch failed, using localStorage fallback:', err);
+                console.warn('Supabase fetch failed, using localStorage fallback:', err);
                 setSyncStatus('offline');
                 // Keep using localStorage data
                 updateTodayFeed();
@@ -1296,30 +1317,31 @@
             }
             renderFeed();
 
-            // POST full entry to Google Sheet
-            if (SCRIPT_URL) {
+            // Upsert full entry to Supabase (one row per person per date)
+            if (BACKEND_READY) {
                 const now = new Date();
                 const weekNum = Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7);
                 try {
-                    await fetch(SCRIPT_URL, {
+                    await fetch(`${REST_URL}?on_conflict=date,name`, {
                         method: 'POST',
+                        headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
                         body: JSON.stringify({
-                            action: 'save',
                             week: `${now.getFullYear()}-W${String(weekNum).padStart(2,'0')}`,
                             date: todayDateStr,
                             name: name,
                             emoji: state.selection,
-                            vibeType: state.type,
+                            vibe_type: state.type,
                             feeling: feeling || '',
-                            lookingForward: lookingForward || '',
-                            proudOf: proudOf || '',
-                            talkAbout: talkAbout || '',
+                            looking_forward: lookingForward || '',
+                            proud_of: proudOf || '',
+                            talk_about: talkAbout || '',
+                            timestamp: new Date().toISOString(),
                         }),
                     });
                     // Fetch fresh data after successful save
-                    setTimeout(fetchSharedEntries, 1000);
+                    setTimeout(fetchSharedEntries, 500);
                 } catch (err) {
-                    console.warn('POST to sheet failed:', err);
+                    console.warn('Supabase save failed:', err);
                     setSyncStatus('offline');
                 }
             }
@@ -1433,30 +1455,31 @@
                 localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
             }
 
-            // Re-POST to sheet (full upsert)
-            if (SCRIPT_URL) {
+            // Re-upsert to Supabase (full row)
+            if (BACKEND_READY) {
                 const item = todayFeed.find(e => e.name === editingName);
                 const now = new Date();
                 const weekNum = Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7);
                 try {
-                    await fetch(SCRIPT_URL, {
+                    await fetch(`${REST_URL}?on_conflict=date,name`, {
                         method: 'POST',
+                        headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
                         body: JSON.stringify({
-                            action: 'save',
                             week: `${now.getFullYear()}-W${String(weekNum).padStart(2,'0')}`,
                             date: todayDateStr,
                             name: editingName,
                             emoji: item ? item.vibe : '',
-                            vibeType: item ? item.type : 'emoji',
+                            vibe_type: item ? item.type : 'emoji',
                             feeling: feeling,
-                            lookingForward: lookingForward,
-                            proudOf: proudOf,
-                            talkAbout: talkAbout,
+                            looking_forward: lookingForward,
+                            proud_of: proudOf,
+                            talk_about: talkAbout,
+                            timestamp: new Date().toISOString(),
                         }),
                     });
-                    setTimeout(fetchSharedEntries, 1000);
+                    setTimeout(fetchSharedEntries, 500);
                 } catch (err) {
-                    console.warn('Edit POST failed:', err);
+                    console.warn('Edit save failed:', err);
                 }
             }
 
@@ -1493,20 +1516,16 @@
             feed = feed.filter(item => !(item.name === name && new Date(item.time).toDateString() === today));
             localStorage.setItem('vibecheck-feed', JSON.stringify(feed));
 
-            // Remove from sheet
-            if (SCRIPT_URL) {
+            // Remove from Supabase
+            if (BACKEND_READY) {
                 try {
-                    await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'clear',
-                            date: todayDateStr,
-                            name: name,
-                        }),
+                    await fetch(`${REST_URL}?date=eq.${todayDateStr}&name=eq.${encodeURIComponent(name)}`, {
+                        method: 'DELETE',
+                        headers: SB_HEADERS,
                     });
-                    setTimeout(fetchSharedEntries, 1000);
+                    setTimeout(fetchSharedEntries, 500);
                 } catch (err) {
-                    console.warn('Delete POST failed:', err);
+                    console.warn('Supabase delete failed:', err);
                 }
             }
 
