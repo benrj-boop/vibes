@@ -239,7 +239,7 @@ const TEAM = (() => {
     const params = new URLSearchParams(window.location.search);
     const teamParam = params.get('team');
     if (teamParam) return teamParam.split(',').map(n => n.trim()).filter(Boolean);
-    return ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya'];
+    return ['Ben', 'Karina', 'Terrence', 'Jun', 'Aditya', 'Asuka', 'Moli'];
 })();
 const EMOJIS = ['🔥','😴','🚀','😤','🧘','🎉','💀','☕','🧠','💪','😅','🫠','✨','🌊','🎯','🤯','😎','🥲','🫡','🦾','🌈','😬','🍕','⚡'];
 
@@ -380,6 +380,8 @@ const CHAR_PALETTES = {
     Terrence: { skin:'#c89060', hair:'#181818', shirt:'#282848', pants:'#1a1a30', shoes:'#222', accent:'#7848a0', accent2:'#9060c0' }, // dark skin, navy
     Jun:      { skin:'#f0d0a0', hair:'#101010', shirt:'#f0f0f0', pants:'#384058', shoes:'#333', accent:'#88bbee', accent2:'#6699cc' }, // glasses, white shirt
     Aditya:   { skin:'#c8a060', hair:'#181010', shirt:'#e89020', pants:'#483820', shoes:'#222', accent:'#f8d030', accent2:'#f0a010' }, // orange shirt
+    Asuka:    { skin:'#f0d0a8', hair:'#3a2a48', shirt:'#7a3ea8', pants:'#2e2440', shoes:'#222', accent:'#c088e8', accent2:'#a860d8' }, // purple
+    Moli:     { skin:'#e8c0a0', hair:'#101014', shirt:'#e05888', pants:'#4a2838', shoes:'#222', accent:'#f890b8', accent2:'#f06898' }, // pink/magenta
 };
 
 // 16x24 pixel sprite definitions as 2D arrays
